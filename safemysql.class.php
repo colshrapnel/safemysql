@@ -2,7 +2,9 @@
 
 class SafeMySQL
 {
-  private $conn;
+	public	$lastquery;
+
+	private $conn;
 	private $emode;
 	private $exname;
 
@@ -18,28 +20,28 @@ class SafeMySQL
 		'errmode'   => 'error', //or exception
 		'exception' => 'Exception', //Exception class name
 	);
-	
+
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
-	
+
 	function __construct($opt = array())
 	{
 		$opt = array_merge($this->defaults,$opt);
-		
+
 		$this->emode  = $opt['errmode'];
 		$this->exname = $opt['exception'];
-		
+
 		if ($opt['pconnect'])
 		{
 			$opt['host'] = "p:".$opt['host'];
 		}
-		
+
 		@$this->conn = mysqli_connect($opt['host'], $opt['user'], $opt['pass'], $opt['db'], $opt['port'], $opt['socket']);
 		if ( !$this->conn )
 		{
 			$this->error(mysqli_connect_errno()." ".mysqli_connect_error());
 		}
-		
+
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
 		unset($opt); // I am paranoid
 	}
@@ -53,7 +55,7 @@ class SafeMySQL
 	{
 		return mysqli_fetch_array($result, $mode);
 	}
-	
+
 	public function affected_rows()
 	{
 		return mysqli_affected_rows ($this->conn);
@@ -63,7 +65,7 @@ class SafeMySQL
 	{
 		return mysqli_insert_id($this->conn);
 	}
-	
+
 	public function num_rows($result)
 	{
 		return mysqli_num_rows($result);
@@ -73,14 +75,10 @@ class SafeMySQL
 	{
 		mysqli_free_result($result);
 	}
-	
+
 	public function getOne()
 	{
 		$query = $this->prepareQuery(func_get_args());
-		if ( !preg_match('~LIMIT\s+\d+\s*(,\s*\d+\s*)?$~', $query) )
-		{
-			$query .= " LIMIT 1";
-		}
 		if ($res = $this->rawQuery($query))
 		{
 			$row = $this->fetch($res);
@@ -95,11 +93,6 @@ class SafeMySQL
 	public function getRow()
 	{
 		$query = $this->prepareQuery(func_get_args());
-		if ( !preg_match('~LIMIT\s+\d+\s*(,\s*\d+\s*)?$~',$query) )
-		{
-			$query.= " LIMIT 1";
-		}
-
 		if ($res = $this->rawQuery($query)) {
 			$ret = $this->fetch($res);
 			$this->free($res);
@@ -191,7 +184,7 @@ class SafeMySQL
 			return $allowed[$found];
 		}
 	}
-	
+
 	public function filterArray($input,$allowed)
 	{
 		foreach(array_keys($input) as $key )
@@ -204,7 +197,9 @@ class SafeMySQL
 		return $input;
 	}
 
-	private function rawQuery($query) {
+	private function rawQuery($query)
+	{
+		$this->lastquery = $query;
 		$res = mysqli_query($this->conn, $query) or $this->error(mysqli_error($this->conn).". Full query: [$query]");
 		return $res;
 	}
@@ -257,7 +252,7 @@ class SafeMySQL
 					$value = '?';
 					$qmarks++;
 					break;
-				case '?q':
+				case '?p':
 					break;
 				default:
 					$this->error("Unknown placeholder type ($pholder) in [$raw]");
@@ -265,7 +260,6 @@ class SafeMySQL
 			$query = substr_replace($query,$value,$offset,2);
 			$shift+= strlen($value) - strlen($pholder);
 		}
-		$this->lastquery = $query;
 		return $query;
 	}
 
@@ -340,11 +334,11 @@ class SafeMySQL
 		}
 		return $query;
 	}
-	
+
 	private function error($err)
 	{
 		$err  = __CLASS__.": ".$err;
-		
+
 		if ( $this->emode == 'error' )
 		{
 			$err .= ". Error initiated in ".$this->caller().", thrown";
