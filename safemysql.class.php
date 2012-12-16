@@ -46,10 +46,9 @@ class SafeMySQL
 
 	public function query()
 	{	
-		$query = $this->prepareQuery(func_get_args());
-		$res = mysqli_query($this->conn, $query) or $this->error(mysqli_error($this->conn).". Full query: [$query]");
-		return $res;
+		return $this->rawQuery($this->prepareQuery(func_get_args()));
 	}
+
 	public function fetch($result,$mode=self::RESULT_ASSOC)
 	{
 		return mysqli_fetch_array($result, $mode);
@@ -82,7 +81,7 @@ class SafeMySQL
 		{
 			$query .= " LIMIT 1";
 		}
-		if ($res = $this->query($query))
+		if ($res = $this->rawQuery($query))
 		{
 			$row = $this->fetch($res);
 			if (is_array($row)) {
@@ -101,7 +100,7 @@ class SafeMySQL
 			$query.= " LIMIT 1";
 		}
 
-		if ($res = $this->query($query)) {
+		if ($res = $this->rawQuery($query)) {
 			$ret = $this->fetch($res);
 			$this->free($res);
 			return $ret;
@@ -113,7 +112,7 @@ class SafeMySQL
 	{
 		$ret   = array();
 		$query = $this->prepareQuery(func_get_args());
-		if ( $res = $this->query($query) )
+		if ( $res = $this->rawQuery($query) )
 		{
 			while($row = $this->fetch($res))
 			{
@@ -128,7 +127,7 @@ class SafeMySQL
 	{
 		$ret   = array();
 		$query = $this->prepareQuery(func_get_args());
-		if ( $res = $this->query($query) )
+		if ( $res = $this->rawQuery($query) )
 		{
 			while($row = $this->fetch($res))
 			{
@@ -146,7 +145,7 @@ class SafeMySQL
 		$query = $this->prepareQuery($args);
 
 		$ret = array();
-		if ( $res = $this->query($query) )
+		if ( $res = $this->rawQuery($query) )
 		{
 			while($row = $this->fetch($res))
 			{
@@ -164,7 +163,7 @@ class SafeMySQL
 		$query = $this->prepareQuery($args);
 
 		$ret = array();
-		if ( $res = $this->query($query) )
+		if ( $res = $this->rawQuery($query) )
 		{
 			while($row = $res->fetch($res))
 			{
@@ -204,6 +203,12 @@ class SafeMySQL
 		}
 		return $input;
 	}
+
+	private function rawQuery($query) {
+		$res = mysqli_query($this->conn, $query) or $this->error(mysqli_error($this->conn).". Full query: [$query]");
+		return $res;
+	}
+
 	private function prepareQuery($args)
 	{
 		$raw = $query = array_shift($args);
@@ -251,6 +256,8 @@ class SafeMySQL
 				case '??':
 					$value = '?';
 					$qmarks++;
+					break;
+				case '?q':
 					break;
 				default:
 					$this->error("Unknown placeholder type ($pholder) in [$raw]");
