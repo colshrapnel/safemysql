@@ -176,12 +176,12 @@ class SafeMySQL
 
 	public function whiteList($input,$allowed,$strict=FALSE)
 	{
-		$found = array_search($input);
+		$found = array_search($input,$allowed);
 		if ($strict && ($found === FALSE))
 		{
 			return FALSE;
 		} else {
-			return $allowed[$found];
+			return $allowed[(int)$found];
 		}
 	}
 
