@@ -174,15 +174,10 @@ class SafeMySQL
 		return $this->prepareQuery(func_get_args());
 	}
 
-	public function whiteList($input,$allowed,$strict=FALSE)
+	public function whiteList($input,$allowed,$default=FALSE)
 	{
-		$found = array_search($input);
-		if ($strict && ($found === FALSE))
-		{
-			return FALSE;
-		} else {
-			return $allowed[$found];
-		}
+		$found = array_search($input,$allowed);
+		return ($found === FALSE) ? $default : $allowed[$found];
 	}
 
 	public function filterArray($input,$allowed)
