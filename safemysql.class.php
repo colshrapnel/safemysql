@@ -201,59 +201,50 @@ class SafeMySQL
 
 	private function prepareQuery($args)
 	{
-		$raw = $query = array_shift($args);
-		preg_match_all('~(\?[a-z?])~',$query,$m,PREG_OFFSET_CAPTURE);
-		$pholders = $m[1];
-		$count = 0;
-		foreach ($pholders as $i => $p)
+		$query = '';
+		$raw   = array_shift($args);
+		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
+		$anum  = count($args);
+		$pnum  = floor(count($array) / 2);
+		if ( $pnum != $anum )
 		{
-			if ($p[0] != '??')
-			{
-				 $count++;
-			}
+			$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
 		}
-		if ( $count != count($args) )
+
+		foreach ($array as $i => $part)
 		{
-			$this->error("Number of args (".count($args).") doesn't match number of placeholders ($count) in [$raw]");
-		}
-		$shift  = 0;
-		$qmarks = 0;
-		foreach ($pholders as $i => $p)
-		{
-			$pholder = $p[0];
-			$offset  = $p[1] + $shift;
-			if ($pholder != '??')
+			if ( ($i % 2) == 0 )
 			{
-				$value   = $args[$i-$qmarks];
+				$query .= $part;
+				continue;
 			}
-			switch ($pholder)
+
+		    $value = array_shift($args);
+			switch ($part)
 			{
 				case '?n':
-					$value = $this->escapeIdent($value);
+					$part = $this->escapeIdent($value);
 					break;
 				case '?s':
-					$value = $this->escapeString($value);
+					$part = $this->escapeString($value);
 					break;
 				case '?i':
-					$value = $this->escapeInt($value);
+					$part = $this->escapeInt($value);
 					break;
 				case '?a':
-					$value = $this->createIN($value);
+					$part = $this->createIN($value);
 					break;
 				case '?u':
-					$value = $this->createSET($value);
-					break;
-				case '??':
-					$value = '?';
-					$qmarks++;
+					$part = $this->createSET($value);
 					break;
 				case '?p':
+					$part = $value;
 					break;
-				default:
-					$this->error("Unknown placeholder type ($pholder) in [$raw]");
+				case '??':
+					$part = '?';
+					break;
 			}
-			$query = substr_replace($query,$value,$offset,2);
-			$shift+= strlen($value) - strlen($pholder);
+			$query .= $part;
 		}
 		return $query;
 	}
@@ -270,7 +261,7 @@ class SafeMySQL
 		}
 		else
 		{
-			$this->error("Invalid value for ?i (int) placeholder: [$value](".gettype($value).")");
+			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
 		}
 	}
 
@@ -285,7 +276,7 @@ class SafeMySQL
 		{
 			return "`".str_replace("`","``",$value)."`";
 		} else {
-			$this->error("Empty value for ?n (identifier) placeholder.");
+			$this->error("Empty value for identifier (?n) placeholder");
 		}
 	}
 
@@ -293,7 +284,7 @@ class SafeMySQL
 	{
 		if (!is_array($data))
 		{
-			$this->error("Value for ?a (IN) placeholder should be array.");
+			$this->error("Value for IN (?a) placeholder should be array");
 			return;
 		}
 		if (!$data)
@@ -313,12 +304,12 @@ class SafeMySQL
 	{
 		if (!is_array($data))
 		{
-			$this->error("Value for ?u (SET) placeholder should be an array. ".gettype($data)." passed instead.");
+			$this->error("SET (?u) placeholder expects array, ".gettype($value)." given");
 			return;
 		}
 		if (!$data)
 		{
-			$this->error("Empty array for ?u (SET) placeholder.");
+			$this->error("Empty array for SET (?u) placeholder");
 			return;
 		}
 		$query = $comma = '';
