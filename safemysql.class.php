@@ -240,9 +240,6 @@ class SafeMySQL
 				case '?p':
 					$part = $value;
 					break;
-				case '??':
-					$part = '?';
-					break;
 			}
 			$query .= $part;
 		}
