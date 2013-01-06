@@ -2,9 +2,9 @@
 
 class SafeMySQL
 {
-	public	$lastquery;
 
 	private $conn;
+	private $stats;
 	private $emode;
 	private $exname;
 
@@ -194,8 +194,15 @@ class SafeMySQL
 
 	private function rawQuery($query)
 	{
-		$this->lastquery = $query;
-		$res = mysqli_query($this->conn, $query) or $this->error(mysqli_error($this->conn).". Full query: [$query]");
+		$start = microtime(TRUE);
+		$res   = mysqli_query($this->conn, $query) or $this->error(mysqli_error($this->conn).". Full query: [$query]");
+		$timer = microtime(TRUE) - $start;
+
+		$this->stats[] = array(
+			'query' => $query,
+			'start' => $start,
+			'timer' => $timer,
+		);
 		return $res;
 	}
 
@@ -289,7 +296,7 @@ class SafeMySQL
 			return 'NULL';
 		}
 		$query = $comma = '';
-		foreach ($data as $key => $value)
+		foreach ($data as $value)
 		{
 			$query .= $comma.$this->escapeString($value);
 			$comma  = ",";
@@ -301,7 +308,7 @@ class SafeMySQL
 	{
 		if (!is_array($data))
 		{
-			$this->error("SET (?u) placeholder expects array, ".gettype($value)." given");
+			$this->error("SET (?u) placeholder expects array, ".gettype($data)." given");
 			return;
 		}
 		if (!$data)
@@ -345,5 +352,15 @@ class SafeMySQL
 			}
 		}
 		return $caller;
+	}
+
+	public function lastQuery()
+	{
+		$last = end($this->stats);
+		return $last['query'];
+	}
+	public function getStats()
+	{
+		return $this->stats;
 	}
 }
