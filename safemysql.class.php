@@ -56,17 +56,17 @@ class SafeMySQL
 		return mysqli_fetch_array($result, $mode);
 	}
 
-	public function affected_rows()
+	public function affectedRows()
 	{
 		return mysqli_affected_rows ($this->conn);
 	}
 
-	public function insert_id()
+	public function insertId()
 	{
 		return mysqli_insert_id($this->conn);
 	}
 
-	public function num_rows($result)
+	public function numRows($result)
 	{
 		return mysqli_num_rows($result);
 	}
