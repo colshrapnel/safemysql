@@ -472,16 +472,17 @@ class SafeMySQL
 	{
 		if (is_float($value))
 		{
-			return number_format($value, 0, '.', ''); // may lose precision on big numbers
+			$value = number_format($value, 0, '.', ''); // may lose precision on big numbers
 		} 
 		elseif(is_numeric($value))
 		{
-			return (string)$value;
+			$value = $value;
 		}
 		else
 		{
 			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
 		}
+		return " ".$value; // to avoid double munus collision (one from query + one from value = comment --)
 	}
 
 	private function escapeString($value)
