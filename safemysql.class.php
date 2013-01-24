@@ -320,7 +320,7 @@ class SafeMySQL
 		$ret = array();
 		if ( $res = $this->rawQuery($query) )
 		{
-			while($row = $res->fetch($res))
+			while($row = $this->fetch($res))
 			{
 				$key = $row[$index];
 				unset($row[$index]);
