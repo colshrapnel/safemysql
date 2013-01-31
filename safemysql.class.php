@@ -470,23 +470,28 @@ class SafeMySQL
 
 	private function escapeInt($value)
 	{
+		if ($value === NULL)
+		{
+			return 'NULL';
+		}
+		if(!is_numeric($value))
+		{
+			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
+			return FALSE;
+		}
 		if (is_float($value))
 		{
 			$value = number_format($value, 0, '.', ''); // may lose precision on big numbers
 		} 
-		elseif(is_numeric($value))
-		{
-			$value = $value;
-		}
-		else
-		{
-			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
-		}
-		return " ".$value; // to avoid double munus collision (one from query + one from value = comment --)
+		return $value;
 	}
 
 	private function escapeString($value)
 	{
+		if ($value === NULL)
+		{
+			return 'NULL';
+		}
 		return	"'".mysqli_real_escape_string($this->conn,$value)."'";
 	}
 
