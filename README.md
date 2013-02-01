@@ -1,9 +1,36 @@
 SafeMySQL
 =========
 
-SafeMySQL is a PHP class for safe and convenient building Mysql queries.
+SafeMySQL is a PHP class for safe and convenient handling of Mysql queries.
 - safe because <b>every</b> dynamic query part goes into query via <b>placeholder</b>
 - convenient because it makes application code short and meaningful, without useless repetitions, making it Extra <abbr title="Don't Repeat Yourself">DRY</abbr>
+
+This class is distinguished by three main features
+- type-hinted placeholders
+- set of helper methods to get the desired result right out of query
+- indispensabe **parse()** method which allows to parse placeholders not in the whole query only (like with native prepared statements) but in the arbitary query part
+
+Yet it is very easy to use. You need to learn only few things:
+
+1. You have to **always** pass whatever dynamical data into query via *placeholder*
+2. Each placeholder have to be marked with data type. At the moment there are 6 types:
+ * ?s ("string")  - strings (also DATE, FLOAT and DECIMAL)
+ * ?i ("integer") - the name says it all 
+ * ?n ("name")    - identifiers (table and field names) 
+ * ?a ("array")   - complex placeholder for IN() operator  (substituted with string of 'a','b','c' format, without parentesis)
+ * ?u ("update")  - complex placeholder for SET operator (substituted with string of `field`='value',`field`='value' format)
+ * ?p ("parsed")  - special type placeholder, for inserting already parsed statements without any processing, to avoid double parsing.
+3. **No need** for the repetitive binding, fetching and such. Get desired result in the proper format already:
+ * query($query,$param1,$param2, ...) - returns mysqli resource.
+ * getOne($query,$param1,$param2, ...) - returns scalar value
+ * getRow($query,$param1,$param2, ...) - returns 1-dimensional array, a row
+ * getCol($query,$param1,$param2, ...) - returns 1-dimensional array, a column
+ * getAll($query,$param1,$param2, ...) - returns 2-dimensional array, an array of rows
+ * getInd($key,$query,$par1,$par2, ...) - returns an indexed 2-dimensional array, an array of rows
+ * getIndCol($key,$query,$par1,$par2, ...) - returns 1-dimensional array, an indexed column, consists of key => value pairs
+4. For the whatever complex case always use **parse()** method. And insert already parsed parts via **?p** placeholder
+
+The rest is as usual - just create a usual SQL (with placeholders) and get a result.
 
 The main feature of this class is a <i>type-hinted placeholders</i>. 
 And it's really great step further from just ordinal placeholders used in prepared statements. 
