@@ -332,9 +332,13 @@ class SafeMySQL
 	}
 
 	/**
-	 * Function to parse placeholders either in the full query or in query part
+	 * Function to parse placeholders either in the full query or a query part
+	 * unlike native prepared statements, allows ANY query part to be parsed
+	 * 
 	 * useful for debug
-	 * and conditional query building
+	 * and EXTREMELY useful for conditional query building
+	 * like adding various query parts using loops, conditions, etc.
+	 * already parsed parts have to be added via ?p placeholder
 	 * 
 	 * Examples:
 	 * $query = $db->parse("SELECT * FROM table WHERE foo=?s AND bar=?s", $foo, $bar);
@@ -383,7 +387,8 @@ class SafeMySQL
 	/**
 	 * function to filter out arrays, for the whitelisting purposes
 	 * useful to pass entire superglobal to the INSERT or UPDATE query
-	 * OUGHT to be used for this purpose, as there could be fuelds whic user inallowed to alter.
+	 * OUGHT to be used for this purpose, 
+	 * as there could be fields to which user should have no access to.
 	 * 
 	 * Example:
 	 * $allowed = array('title','url','body','rating','term','type');
@@ -407,10 +412,38 @@ class SafeMySQL
 		return $input;
 	}
 
+	/**
+	 * Function to get last executed query. 
+	 * 
+	 * @return string|NULL either last executed query or NULL if were none
+	 */
+	public function lastQuery()
+	{
+		$last = end($this->stats);
+		return $last['query'];
+	}
+
+	/**
+	 * Function to get all query statistics. 
+	 * 
+	 * @return array contains all executed queries with timings and errors
+	 */
+	public function getStats()
+	{
+		return $this->stats;
+	}
+
+	/**
+	 * private function which actually runs a query against Mysql server.
+	 * also logs some stats like profiling info and error message
+	 * 
+	 * @param string $query - a regular SQL query
+	 * @return mysqli result resource or FALSE on error
+	 */
 	private function rawQuery($query)
 	{
 		$start = microtime(TRUE);
-		$res   = mysqli_query($this->conn, $query) or $this->error(mysqli_error($this->conn).". Full query: [$query]");
+		$res   = mysqli_query($this->conn, $query);
 		$timer = microtime(TRUE) - $start;
 
 		$this->stats[] = array(
@@ -418,6 +451,18 @@ class SafeMySQL
 			'start' => $start,
 			'timer' => $timer,
 		);
+		if (!$res)
+		{
+			$error = mysqli_error($this->conn);
+			
+			end($this->stats);
+			$key = key($this->stats);
+			$this->stats[$key]['error'] = $error;
+			$this->cutStats();
+			
+			$this->error("$error. Full query: [$query]");
+		}
+		$this->cutStats();
 		return $res;
 	}
 
@@ -576,23 +621,16 @@ class SafeMySQL
 	}
 
 	/**
-	 * Function to get last executed query. 
-	 * 
-	 * @return string|NULL either last executed query or NULL if were none
+	 * On a long run we can eat up too much memory with mere statsistics
+	 * Let's keep it at reasonable size, leaving only last 100 entries.
 	 */
-	public function lastQuery()
+	private function cutStats()
 	{
-		$last = end($this->stats);
-		return $last['query'];
-	}
-
-	/**
-	 * Function to get all query statistics. 
-	 * 
-	 * @return array contains all executed queries with timings
-	 */
-	public function getStats()
-	{
-		return $this->stats;
+		if ( count($this->stats) > 100 )
+		{
+			reset($this->stats);
+			$first = key($this->stats);
+			unset($this->stats[$key]);
+		}
 	}
 }
