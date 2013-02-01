@@ -13,6 +13,7 @@ thanks to set of helper methods to get the desired result right out of the query
 thanks to indispensabe **parse()** method, making complex queries as easy and safe as regular ones.
 
 Yet it is very easy to use. You need to learn only few things:
+
 1. You have to **always** pass whatever dynamical data into query via *placeholder*
 2. Each placeholder have to be marked with data type. At the moment there are 6 types:
  * ?s ("string")  - strings (also DATE, FLOAT and DECIMAL)
@@ -31,7 +32,11 @@ Yet it is very easy to use. You need to learn only few things:
  * getIndCol($key,$query,$par1,$par2, ...) - returns 1-dimensional array, an indexed column, consists of key => value pairs
 4. For the whatever complex case always use **parse()** method. And insert already parsed parts via **?p** placeholder
 
-The rest is as usual - just create a regular SQL (with placeholders) and get a result.
+The rest is as usual - just create a regular SQL (with placeholders) and get a result:
+
+* ```$name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);```
+* ```$data = $db->getInd('id','SELECT * FROM ?n WHERE id IN (?a)','table', array(1,2));```
+* ```$data = $db->getAll("SELECT * FROM ?n WHERE mod=?s LIMIT ?i",$table,$mod,$limit);```
 
 The main feature of this class is a <i>type-hinted placeholders</i>. 
 And it's really great step further from just ordinal placeholders used in prepared statements. 
