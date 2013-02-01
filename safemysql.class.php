@@ -630,7 +630,7 @@ class SafeMySQL
 		{
 			reset($this->stats);
 			$first = key($this->stats);
-			unset($this->stats[$key]);
+			unset($this->stats[$first]);
 		}
 	}
 }
