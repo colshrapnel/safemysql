@@ -8,7 +8,8 @@ SafeMySQL is a PHP class for safe and convenient handling of Mysql queries.
 This class is distinguished by three main features
 - unlike standard libraries, it is using **type-hinted placeholders**, for the **everything** that may be put into query
 - unlike standard libraries, it require no repetitive code, providing set of helper methods to get the desired result right out of the query
-- unlike standard libraries, it allows to parse placeholders not in the whole query only but in the arbitary query part, thanks to indispensabe **parse()** method, making complex queries as easy and safe as regular ones.
+- unlike standard libraries, it can parse placeholders not in the whole query only, but in the arbitary query part, 
+thanks to indispensabe **parse()** method, making complex queries as easy and safe as regular ones.
 
 Yet it is very easy to use. You need to learn only few things:
 
