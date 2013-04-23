@@ -66,7 +66,8 @@ class SafeMySQL
 	private $stats;
 	private $emode;
 	private $exname;
-
+	private $wlarr=array("display","error","exception"); // emode whitelist
+	
 	private $defaults = array(
 		'host'      => 'localhost',
 		'user'      => 'root',
@@ -83,8 +84,17 @@ class SafeMySQL
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
 
-	function __construct($opt = array())
+	function __construct($opt = null)
 	{
+		if(!is_array($opt) && strlen($opt))
+		{
+			$opt = $this->parseDSN($opt);
+		}
+		else
+		{
+			if(empty($opt)) $opt = array();
+		}
+
 		$opt = array_merge($this->defaults,$opt);
 
 		$this->emode  = $opt['errmode'];
@@ -104,6 +114,8 @@ class SafeMySQL
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
 		unset($opt); // I am paranoid
 	}
+
+
 
 	/**
 	 * Conventional function to run a query with placeholders. A mysqli_query wrapper with placeholders support
@@ -433,6 +445,39 @@ class SafeMySQL
 		return $this->stats;
 	}
 
+
+	/**
+	 * ParseDSN dbsimple style
+	 * mysql://user:pass@host/database
+	 *
+	 */
+	private function parseDSN($dsn)
+	{
+		if (is_array($dsn)) return $dsn;
+		$parsed = @parse_url($dsn);
+		if (!$parsed) return null;
+		$params = null;
+		if (!empty($parsed['query'])) {
+			parse_str($parsed['query'], $params);
+			$parsed += $params;
+		}
+		$parsed['db'] = str_replace("/","",$parsed['path']);
+		unset($parsed['path']);
+		return $parsed;
+	}  
+
+	/**
+	 * passable error handler after init, to override emode
+	 * $db->set_error_handler("display");
+	 */
+	public function set_error_handler($err=null)
+	{
+			if(in_array($err, $this->wlarr))
+			$this->emode=$err;
+			return FALSE;
+	}
+	
+	
 	/**
 	 * private function which actually runs a query against Mysql server.
 	 * also logs some stats like profiling info and error message
@@ -460,7 +505,7 @@ class SafeMySQL
 			$this->stats[$key]['error'] = $error;
 			$this->cutStats();
 			
-			$this->error("$error. Full query: [$query]");
+			$this->error("$error. \nFull query: [$query]");
 		}
 		$this->cutStats();
 		return $res;
@@ -593,17 +638,26 @@ class SafeMySQL
 
 	private function error($err)
 	{
+		$derr = $err;
 		$err  = __CLASS__.": ".$err;
 
-		if ( $this->emode == 'error' )
+		switch($this->emode)
 		{
-			$err .= ". Error initiated in ".$this->caller().", thrown";
-			trigger_error($err,E_USER_ERROR);
-		} else {
-			throw new $this->exname($err);
+			default:
+			case "error":
+				$err .= ". Error initiated in ".$this->caller().", thrown";
+				trigger_error($err,E_USER_ERROR);
+			break;
+			case "exception":
+				throw new $this->exname($err);
+			break;
+			case "display":
+				$derr.=".\nError initiated in ".$this->caller().", thrown";
+				echo "<pre style='width:100%;word-wrap:break-word;background-color:rgb(231, 231, 231);padding:5px 0 5px 5px;'>".$derr."</pre>";
+			break;
 		}
 	}
-
+	
 	private function caller()
 	{
 		$trace  = debug_backtrace();
