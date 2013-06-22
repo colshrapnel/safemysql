@@ -42,7 +42,7 @@
  * $name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);
  * $data = $db->getInd('id','SELECT * FROM ?n WHERE id IN ?a','table', array(1,2));
  * $data = $db->getAll("SELECT * FROM ?n WHERE mod=?s LIMIT ?i",$table,$mod,$limit);
-
+ *
  * $ids  = $db->getCol("SELECT id FROM tags WHERE tagname = ?s",$tag);
  * $data = $db->getAll("SELECT * FROM table WHERE category IN (?a)",$ids);
  * 
