@@ -1,10 +1,10 @@
 SafeMySQL
 =========
 
-This is a fork after the original project posted by `colshrapnel`. 
-This contains some personal modifications like:
- 	- added the option to return results as objects(enabled by default)
-    - added named parameters (still testing)
+This is a fork after the original project posted by `colshrapnel`.  
+This contains some personal modifications like:  
+ 	- added the option to return results as objects(enabled by default)  
+ 	- added named parameters (still testing)  
 
 
 
