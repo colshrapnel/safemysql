@@ -1,6 +1,14 @@
 SafeMySQL
 =========
 
+This is a fork after the original project posted by `colshrapnel`. 
+This contains some personal modifications like:
+ 	- added the option to return results as objects(enabled by default)
+    - added named parameters (still testing)
+
+
+
+
 SafeMySQL is a PHP class for safe and convenient handling of Mysql queries.
 - safe because <b>every</b> dynamic query part goes into query via <b>placeholder</b>
 - convenient because it makes application code short and meaningful, without useless repetitions, making it Extra <abbr title="Don't Repeat Yourself">DRY</abbr>
