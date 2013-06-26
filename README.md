@@ -6,10 +6,10 @@ This contains some personal modifications like:
  	- added the option to return results as objects(enabled by default)  
  	- added named parameters (still testing)  
 
-$db->getRow("SELECT * FROM users WHERE userid = :id AND username = :user AND password = ?s", array("id" => 1, "user" => 'ionutvmi'), 'r');  
+<code>$db->getRow("SELECT * FROM users WHERE userid = :id AND username = :user AND password = ?s", array("id" => 1, "user" => 'ionutvmi'), 'r');  
 $db->getRow("SELECT * FROM users WHERE userid = ?i AND username = ?s", 1, 'ionutvmi');  
 $db->getRow("SELECT * FROM users WHERE userid IN(?a) AND username = :red AND email = ?s", array('red'=>'ionutvmi'), array(1,2,3), 'ionutvmi@gmail.com');  
-
+</code>
 
 SafeMySQL is a PHP class for safe and convenient handling of Mysql queries.
 - safe because <b>every</b> dynamic query part goes into query via <b>placeholder</b>
