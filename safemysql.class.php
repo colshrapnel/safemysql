@@ -135,6 +135,9 @@ class SafeMySQL
      */
     public function ret($value)
     {
+        if(!$value)
+            return FALSE;
+        
         if($this->asObj)
             return (object)$value;
         else
