@@ -285,11 +285,11 @@ class SafeMySQL
         {
             while($row = $this->fetch($res))
             {
-                $ret[] = $row;
+                $ret[] = $this->ret($row);
             }
             $this->free($res);
         }
-        return $this->ret($ret);
+        return $ret; // even if asObj is true this will return an array of objects so no ret() here
     }
 
     /**
@@ -494,7 +494,7 @@ class SafeMySQL
         $raw   = array_shift($args);
 
         // we grab placeholders ?i... and the named params
-        $array = preg_split('~(\?[nsiuap])|(:[A-Za-z0-9]+)~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
+        $array = preg_split('~(\?[nsiuap])|(:[A-Za-z0-9]+)~u'," ".$raw,null,PREG_SPLIT_DELIM_CAPTURE);
         $anum  = count($args);
 
         $array = array_values(array_filter($array)); // we clear the empty values for some reason the regex makes them i'm missing something there...
