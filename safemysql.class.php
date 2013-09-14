@@ -3,10 +3,6 @@
  * @author col.shrapnel@gmail.com
  * @link http://phpfaq.ru/safemysql
  * 
- * 26.Jun.2013
- *     @editor Mihai Ionut Vilcu (ionutvmi@gmail.com)
- *         - added the option to return results as objects
- *         - added named parameters
  * 
  * Safe and convenient vay to handle SQL queries utilizing type-hinted placeholders.
  * 
@@ -15,6 +11,8 @@
  * - conditional query building using parse() method to build queries of whatever comlexity, 
  *   while keeping extra safety of placeholders
  * - type-hinted placeholders
+ * - option to return results as objects
+ * - named parameters support
  * 
  *  Type-hinted placeholders are great because 
  * - safe, as any other [properly implemented] placeholders
