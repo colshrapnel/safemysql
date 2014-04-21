@@ -44,7 +44,7 @@ The rest is as usual - just write regular SQL (with placeholders) and get a resu
 
 ## What's so great about type-hinted placeholders?
 
-The main feature of this class is *type-hinted placeholders*. And it's really great step further from just ordinal placeholders used in prepared statements, simply because **dynamical parts of the query aren't limited to just scalar data!**
+The main feature of this class is *type-hinted placeholders*. And it's really a great step further from just ordinal placeholders used in prepared statements, simply because **dynamic parts of the query aren't limited to just scalar data!**
 
 In real life we have to add identifiers, arrays for `IN` operator, arrays for `INSERT` and `UPDATE` queries. So we need **many** different types of data formatting. Thus, we need the way to tell the driver how to format this particular data.
 
@@ -65,7 +65,7 @@ Nothing could be easier!
 
 Of course we will have placeholders for the common types - strings and numbers. But as we started inventing new placeholders - let's make some more!
 
-Another difficult in creating prepared queries is arrays going to IN operator. Everyone is trying to do it their own way but the type-hinted placeholder makes it as simple as adding a string:
+Another difficulty in creating prepared queries is arrays going to IN operator. Everyone is trying to do it their own way but the type-hinted placeholder makes it as simple as adding a string:
 
 ```php
 $array = array(1,2,3);
