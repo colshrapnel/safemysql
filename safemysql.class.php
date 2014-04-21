@@ -3,7 +3,7 @@
  * @author col.shrapnel@gmail.com
  * @link http://phpfaq.ru/safemysql
  * 
- * Safe and convenient vay to handle SQL queries utilizing type-hinted placeholders.
+ * Safe and convenient way to handle SQL queries utilizing type-hinted placeholders.
  * 
  * Key features
  * - set of helper functions to get the desired result right out of query, like in PEAR::DB
@@ -18,13 +18,25 @@
  * 
  * Supported placeholders at the moment are:
  * 
- * ?s ("string")  - strings (also DATE, FLOAT and DECIMAL)
- * ?i ("integer") - the name says it all 
- * ?n ("name")    - identifiers (table and field names) 
- * ?a ("array")   - complex placeholder for IN() operator  (substituted with string of 'a','b','c' format, without parentesis)
- * ?u ("update")  - complex placeholder for SET operator (substituted with string of `field`='value',`field`='value' format)
- * and
- * ?p ("parsed") - special type placeholder, for inserting already parsed statements without any processing, to avoid double parsing.
+ * ?s ("string")              - strings (also DATE, FLOAT and DECIMAL)
+ * ?i ("integer")             - integers
+ * ?n ("name")                - identifiers (table and field names)
+ * ?a ("array")               - complex placeholder for IN () clauses (expects an array of values; the
+ *                                    placeholder will be substituted for a string in 'a','b','c' format, without
+ *                                    parenthesis)
+ * ?u ("update")              - complex placeholder for SET clauses (expects an associative array mapping field
+ *                                    names to values; the placeholder will be substituted for a string in
+ *                                    `field` ='value', `field` ='value' format)
+ * ?m ("multi-row")           - complex placeholder for bulk INSERT queries with a VALUES clause. Expects an
+ *                                    array of arrays, with the child arrays representing rows to be inserted. The
+ *                                    placeholder will be substituted for a string in ('a', 'b', 'c'), ('e', 'f', 'g')
+ *                                    format.
+ * ?k ("key/value multi-row") - another complex placeholder for INSERT queries with VALUES clauses. Expects an array of
+ *                              associative arrays, with the associative arrays representing the rows to be inserted as
+ *                              field => value mappings. The placeholder will be substituted for a string like
+ *                              (`col1`, `col2`) VALUES ('a', 'b'), ('c', 'd')
+ * ?p ("parsed")              - special placeholder for inserting already parsed query components without any
+ *                              processing, to avoid double parsing
  * 
  * Some examples:
  *
@@ -45,18 +57,30 @@
  *
  * $ids  = $db->getCol("SELECT id FROM tags WHERE tagname = ?s",$tag);
  * $data = $db->getAll("SELECT * FROM table WHERE category IN (?a)",$ids);
- * 
- * $data = array('offers_in' => $in, 'offers_out' => $out);
- * $sql  = "INSERT INTO stats SET pid=?i,dt=CURDATE(),?u ON DUPLICATE KEY UPDATE ?u";
- * $db->query($sql,$pid,$data,$data);
- * 
+ *
  * if ($var === NULL) {
  *     $sqlpart = "field is NULL";
  * } else {
  *     $sqlpart = $db->parse("field = ?s", $var);
  * }
  * $data = $db->getAll("SELECT * FROM table WHERE ?p", $bar, $sqlpart);
+ *
+ *
+ * $data = array('offers_in' => $in, 'offers_out' => $out);
+ * $sql  = "INSERT INTO stats SET pid=?i,dt=CURDATE(),?u ON DUPLICATE KEY UPDATE ?u";
+ * $db->query($sql,$pid,$data,$data);
+ *
+ * $cars = array(
+ *     array('Audi A3', 22, 24500),
+ *     array('Ford Ka', 36, 29000),
+ *     array('Ferrari 159 S', 792, 80000)
+ * );
+ * $db->query("INSERT INTO cars (model, age, mileage) ?m", $cars);
  * 
+ * $cars = $_POST['cars'];
+ * $allowedColumns = array('model', 'age', 'mileage');
+ * $filteredCars = $db->filter2DArray($_POST['cars'], $allowedColumns);
+ * $db->query("INSERT INTO cars ?k", $filteredCars);
  */
 
 class SafeMySQL
@@ -116,7 +140,7 @@ class SafeMySQL
 	 * @return resource|FALSE whatever mysqli_query returns
 	 */
 	public function query()
-	{	
+	{
 		return $this->rawQuery($this->prepareQuery(func_get_args()));
 	}
 
@@ -332,13 +356,14 @@ class SafeMySQL
 	}
 
 	/**
-	 * Function to parse placeholders either in the full query or a query part
-	 * unlike native prepared statements, allows ANY query part to be parsed
+	 * Function to parse placeholders either in the full query or a query part.
+	 * Unlike native prepared statements, allows ANY query part to be parsed.
 	 * 
-	 * useful for debug
-	 * and EXTREMELY useful for conditional query building
+	 * Useful for debugging.
+	 * Also EXTREMELY useful for conditional query building,
 	 * like adding various query parts using loops, conditions, etc.
-	 * already parsed parts have to be added via ?p placeholder
+	 *
+	 * Already parsed parts have to be added via ?p placeholder
 	 * 
 	 * Examples:
 	 * $query = $db->parse("SELECT * FROM table WHERE foo=?s AND bar=?s", $foo, $bar);
@@ -359,9 +384,12 @@ class SafeMySQL
 	}
 
 	/**
-	 * function to implement whitelisting feature
-	 * sometimes we can't allow a non-validated user-supplied data to the query even through placeholder
-	 * especially if it comes down to SQL OPERATORS
+	 * Simple whitelisting function.
+	 *
+	 * Sometimes we can't allow a non-validated user-supplied data to the query even through placeholder.
+	 * In such circumstances, a whitelist is the next-simplest tool at our disposal.
+	 *
+	 * If $input is in the $allowed array, returns $input. Otherwise, returns FALSE or, if provided, default.
 	 * 
 	 * Example:
 	 *
@@ -373,7 +401,7 @@ class SafeMySQL
 	 * $sql  = "SELECT * FROM table ORDER BY ?p ?p LIMIT ?i,?i"
 	 * $data = $db->getArr($sql, $order, $dir, $start, $per_page);
 	 * 
-	 * @param string $iinput   - field name to test
+	 * @param  string $input   - field name to test
 	 * @param  array  $allowed - an array with allowed variants
 	 * @param  string $default - optional variable to set if no match found. Default to false.
 	 * @return string|FALSE    - either sanitized value or FALSE
@@ -385,10 +413,10 @@ class SafeMySQL
 	}
 
 	/**
-	 * function to filter out arrays, for the whitelisting purposes
-	 * useful to pass entire superglobal to the INSERT or UPDATE query
-	 * OUGHT to be used for this purpose, 
-	 * as there could be fields to which user should have no access to.
+	 * A function to filter unwanted keys out of arrays for whitelisting purposes.
+	 * Useful when passing the entire $_GET or $_POST superglobal to an INSERT or UPDATE query.
+	 * OUGHT to be used for this purpose, as there could be fields to which user should have no
+	 * access to.
 	 * 
 	 * Example:
 	 * $allowed = array('title','url','body','rating','term','type');
@@ -413,7 +441,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * whitelisting function designed to be used in conjunction with the ?k placeholder.
+	 * A whitelisting function designed to be used in conjunction with the ?k placeholder.
 	 *
 	 * Expects to receive an array of associative arrays, and filters each of the nested arrays
 	 * using filterArray.
@@ -461,7 +489,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * private function which actually runs a query against Mysql server.
+	 * private function which actually executes $query.
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
@@ -707,7 +735,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * On a long run we can eat up too much memory with mere statsistics
+	 * On a long run we can eat up too much memory with mere statistics
 	 * Let's keep it at reasonable size, leaving only last 100 entries.
 	 */
 	private function cutStats()
