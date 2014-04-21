@@ -75,3 +75,73 @@ $data  = $db->query("SELECT * FROM table WHERE id IN (?a)",$array);
 The same goes for other toilsome queries like `INSERT` and `UPDATE`.
 
 Combined with SafeMySQL's helper functions, these placeholders make almost every call to database as simple as one or two lines of code for all regular real life tasks.
+
+## Some Examples
+
+### Initialization
+
+```php
+$db = new SafeMySQL(); // with default settings
+```
+
+```php
+$opts = array(
+ *		'user'    => 'user',
+ *		'pass'    => 'pass',
+ *		'db'      => 'db',
+ *		'charset' => 'latin1'
+);
+$db = new SafeMySQL($opts); // with some of the default settings overwritten
+```
+
+### SELECT queries
+
+```php
+$name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);
+```
+
+```php
+$data = $db->getInd('id','SELECT * FROM ?n WHERE id IN ?a','table', array(1,2));
+```
+
+```php
+$data = $db->getAll("SELECT * FROM ?n WHERE mod=?s LIMIT ?i",$table,$mod,$limit);
+```
+
+```php
+$ids  = $db->getCol("SELECT id FROM tags WHERE tagname = ?s",$tag);
+$data = $db->getAll("SELECT * FROM table WHERE category IN (?a)",$ids);
+```
+
+```php
+if ($var === NULL) {
+    $sqlpart = "field is NULL";
+} else {
+    $sqlpart = $db->parse("field = ?s", $var);
+}
+$data = $db->getAll("SELECT * FROM table WHERE ?p", $bar, $sqlpart);
+```
+
+### INSERT queries
+
+```php
+$data = array('offers_in' => $in, 'offers_out' => $out);
+$sql  = "INSERT INTO stats SET pid=?i,dt=CURDATE(),?u ON DUPLICATE KEY UPDATE ?u";
+$db->query($sql,$pid,$data,$data);
+```
+
+```php
+$cars = array(
+    array('Audi A3', 22, 24500),
+    array('Ford Ka', 36, 29000),
+    array('Ferrari 159 S', 792, 80000)
+);
+$db->query("INSERT INTO cars (model, age, mileage) ?m", $cars);
+```
+
+```php
+$cars = $_POST['cars'];
+$allowedColumns = array('model', 'age', 'mileage');
+$filteredCars = $db->filter2DArray($_POST['cars'], $allowedColumns);
+$db->query("INSERT INTO cars ?k", $filteredCars);
+```
