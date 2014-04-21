@@ -136,7 +136,7 @@ $cars = array(
     array('Ford Ka', 36, 29000),
     array('Ferrari 159 S', 792, 80000)
 );
-$db->query("INSERT INTO cars (model, age, mileage) ?m", $cars);
+$db->query("INSERT INTO cars (model, age, mileage) VALUES ?m", $cars);
 ```
 
 ```php
