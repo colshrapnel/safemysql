@@ -146,6 +146,6 @@ $cars = array(
     array('model'=>'Ferrari 159 S', 'age'=>792, 'mileage'=>80000)
 );
 $allowedColumns = array('model', 'age', 'mileage');
-$filteredCars = $db->filter2DArray($_POST['cars'], $allowedColumns);
+$filteredCars = $db->filter2DArray($cars, $allowedColumns);
 $db->query("INSERT INTO cars ?k", $filteredCars);
 ```
