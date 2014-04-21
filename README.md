@@ -91,7 +91,7 @@ $opts = array(
  *		'db'      => 'db',
  *		'charset' => 'latin1'
 );
-$db = new SafeMySQL($opts); // with some of the default settings overwritten
+$db = new SafeMySQL($opts); // with some of the default settings overridden
 ```
 
 ### SELECT queries

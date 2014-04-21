@@ -48,7 +48,7 @@
  *		'db'      => 'db',
  *		'charset' => 'latin1'
  * );
- * $db = new SafeMySQL($opts); // with some of the default settings overwritten
+ * $db = new SafeMySQL($opts); // with some of the default settings overridden
  * 
  * 
  * $name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);
