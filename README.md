@@ -140,7 +140,11 @@ $db->query("INSERT INTO cars (model, age, mileage) ?m", $cars);
 ```
 
 ```php
-$cars = $_POST['cars'];
+$cars = array(
+    array('model'=>'Audi A3',       'age'=>22,  'mileage'=>24500),
+    array('model'=>'Ford Ka',       'age'=>36,  'mileage'=>29000),
+    array('model'=>'Ferrari 159 S', 'age'=>792, 'mileage'=>80000)
+);
 $allowedColumns = array('model', 'age', 'mileage');
 $filteredCars = $db->filter2DArray($_POST['cars'], $allowedColumns);
 $db->query("INSERT INTO cars ?k", $filteredCars);
