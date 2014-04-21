@@ -413,6 +413,33 @@ class SafeMySQL
 	}
 
 	/**
+	 * whitelisting function designed to be used in conjunction with the ?k placeholder.
+	 *
+	 * Expects to receive an array of associative arrays, and filters each of the nested arrays
+	 * using filterArray.
+	 *
+	 * Example:
+	 * $allowed      = array('title','url','body','rating','term','type');
+	 * $rows         = json_decode($_POST['rows']);
+	 * $filteredRows = $db->filter2DArray($rowList,$allowed);
+	 * $sql          = "INSERT INTO ?n ?k";
+	 * $db->query($sql,$table,$filtered);
+	 *
+	 * @param  array $input   - source array
+	 * @param  array $allowed - an array with allowed field names
+	 * @return array filtered out source array
+	 */
+	public function filter2DArray($input,$allowed)
+	{
+		$filteredArray = array();
+		foreach ($input as $row)
+		{
+			$filteredArray[] = $this->filterArray($row,$allowed);
+		}
+		return $filteredArray;
+	}
+
+	/**
 	 * Function to get last executed query. 
 	 * 
 	 * @return string|NULL either last executed query or NULL if were none
@@ -470,7 +497,7 @@ class SafeMySQL
 	{
 		$query = '';
 		$raw   = array_shift($args);
-		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
+		$array = preg_split('~(\?[nsiuakmp])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
 		$anum  = count($args);
 		$pnum  = floor(count($array) / 2);
 		if ( $pnum != $anum )
@@ -503,6 +530,12 @@ class SafeMySQL
 					break;
 				case '?u':
 					$part = $this->createSET($value);
+					break;
+				case '?m':
+					$part = $this->createMultiRow($value);
+					break;
+				case '?k':
+					$part = $this->createKeyValueRows($value);
 					break;
 				case '?p':
 					$part = $value;
@@ -589,6 +622,59 @@ class SafeMySQL
 			$comma  = ",";
 		}
 		return $query;
+	}
+
+	private function createKeyValueRows($data)
+	{
+		$columns = array_keys($data[0]);
+		$numColumns = count($columns);
+		$escapedColumns = array_map(array($this, 'escapeIdent'), $columns);
+		$query = '(' . implode(',', $escapedColumns) . ') VALUES ';
+
+		// We make sure the rows all have their values in the same order, then use createMultiRow
+		$orderedRows = array();
+		foreach ($data as $row)
+		{
+			if ( count($row) != $numColumns )
+			{
+				$this->error("Rows passed to ?k placeholder contained different numbers of elements");
+				return;
+			}
+			$orderedRow = array();
+			foreach ($columns as $column)
+			{
+				if ( !array_key_exists($column, $row) )
+				{
+					$this->error("Rows passed to ?k placeholder contained different keys");
+					return;
+				}
+				$orderedRow[] = $row[$column];
+			}
+			$orderedRows[] = $orderedRow;
+		}
+
+		$query .= $this->createMultiRow($orderedRows);
+		return $query;
+	}
+
+	private function createMultiRow($data)
+	{
+		if (!is_array($data))
+		{
+			$this->error("MultiRow (?m) placeholder expects array of arrays, ".gettype($data)." given");
+		}
+
+		$parsedRows = array();
+		foreach ($data as $row)
+		{
+			if (!is_array($row))
+			{
+				$this->error("Elements of array passed to MultiRow (?m) placeholder should be arrays; ".
+				             gettype($row)." given");
+			}
+			$parsedRows[] = '(' . $this->createIN($row) . ')';
+		}
+		return implode(',', $parsedRows);
 	}
 
 	private function error($err)
