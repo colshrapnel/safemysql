@@ -18,12 +18,14 @@ Yet it is very easy to use. You need learn only a few things.
 
 1. You have to always pass variables into the query via *placeholder*
 2. Each placeholder has to be marked with its data type. At the moment there are 6 types:
- * `?s` **("string")**  - strings (also `DATE`, `FLOAT` and `DECIMAL`)
- * `?i` **("integer")** - integers
- * `?n` **("name")**    - identifiers (table and field names) 
- * `?a` **("array")**   - complex placeholder for `IN ()` clauses (expects an array of values; the placeholder will be substituted for a string in 'a','b','c' format, without parenthesis)
- * `?u` **("update")**  - complex placeholder for `SET` clauses (expects an associative array mapping field names to values; the placeholder will be substituted for a string in `` `field` ='value', `field` ='value' `` format)
- * `?p` **("parsed")**  - special placeholder for inserting already parsed query components without any processing, to avoid double parsing
+ * `?s` **("string")**              - strings (also `DATE`, `FLOAT` and `DECIMAL`)
+ * `?i` **("integer")**             - integers
+ * `?n` **("name")**                - identifiers (table and field names) 
+ * `?a` **("array")**               - complex placeholder for `IN ()` clauses (expects an array of values; the placeholder will be substituted for a string in 'a','b','c' format, without parenthesis)
+ * `?u` **("update")**              - complex placeholder for `SET` clauses (expects an associative array mapping field names to values; the placeholder will be substituted for a string in `` `field` ='value', `field` ='value' `` format)
+ * `?m` **("multi-row")**           - complex placeholder for bulk `INSERT` queries with a `VALUES` clause. Expects an array of arrays, with the child arrays representing rows to be inserted. The placeholder will be substituted for a string in `('a', 'b', 'c'), ('e', 'f', 'g')` format.
+ * `?k` **("key/value multi-row")** - another complex placeholder for `INSERT` queries with `VALUES` clauses. Expects an array of associative arrays, with the associative arrays representing the rows to be inserted as field => value mappings. The placeholder will be substituted for a string like `` (`col1`, `col2`) VALUES ('a', 'b'), ('c', 'd') ``
+ * `?p` **("parsed")**              - special placeholder for inserting already parsed query components without any processing, to avoid double parsing
 3. To get data right out of the query there are several helper methods:
  * `query($query,$param1,$param2, ...)` - returns mysqli resource.
  * `getOne($query,$param1,$param2, ...)` - returns a single scalar value
