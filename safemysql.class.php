@@ -61,13 +61,12 @@
 
 class SafeMySQL
 {
-
 	private $conn;
 	private $stats;
 	private $emode;
 	private $exname;
 
-	private $defaults = array(
+	private static $defaults = array(
 		'host'      => 'localhost',
 		'user'      => 'root',
 		'pass'      => '',
@@ -80,28 +79,54 @@ class SafeMySQL
 		'exception' => 'Exception', //Exception class name
 	);
 
+	private static $encodings = array(		
+		'ascii'   => 'ASCII',
+		'big5'    => 'BIG-5',
+		'cp1251'  => 'Windows-1251',
+		'cp866'   => 'CP866',
+		'cp932'   => 'CP932',
+		'eucjpms' => 'eucJP-win',
+		'euckr'   => 'EUC-KR',
+		'greek'   => 'ISO-8859-7',
+		'koi8r'   => 'KOI8-R',
+		'latin1'  => 'Windows-1252',
+		'latin2'  => 'ISO-8859-2',
+		'latin5'  => 'ISO-8859-9',
+		'latin7'  => 'ISO-8859-13',
+		'sjis'    => 'SJIS',
+		'ucs2'    => 'UCS-2',
+		'ujis'    => 'EUC-JP',
+		'utf8'    => 'UTF-8',
+		'utf8mb4' => 'UTF-8',
+		'utf16'   => 'UTF-16',
+		'utf16le' => 'UTF-16LE',
+		'utf32'   => 'UTF-32',
+	);
+
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
 
 	function __construct($opt = array())
 	{
-		$opt = array_merge($this->defaults,$opt);
+		$opt = array_merge(self::$defaults,$opt);
 
 		$this->emode  = $opt['errmode'];
 		$this->exname = $opt['exception'];
 
 		if ($opt['pconnect'])
 		{
-			$opt['host'] = "p:".$opt['host'];
+			$opt['host'] = 'p:'.$opt['host'];
 		}
 
 		@$this->conn = mysqli_connect($opt['host'], $opt['user'], $opt['pass'], $opt['db'], $opt['port'], $opt['socket']);
 		if ( !$this->conn )
 		{
-			$this->error(mysqli_connect_errno()." ".mysqli_connect_error());
+			$this->error(mysqli_connect_errno().' '.mysqli_connect_error());
 		}
 
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
+		mb_regex_encoding(self::$encodings[$opt['charset']]) or $this->error('Unable to set encoding');
+
 		unset($opt); // I am paranoid
 	}
 
@@ -521,7 +546,7 @@ class SafeMySQL
 		}
 		if(!is_numeric($value))
 		{
-			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
+			$this->error('Integer (?i) placeholder expects numeric value, '.gettype($value).' given');
 			return FALSE;
 		}
 		if (is_float($value))
@@ -544,9 +569,9 @@ class SafeMySQL
 	{
 		if ($value)
 		{
-			return "`".str_replace("`","``",$value)."`";
+			return '`'.mb_ereg_replace('`','``',$value).'`';
 		} else {
-			$this->error("Empty value for identifier (?n) placeholder");
+			$this->error('Empty value for identifier (?n) placeholder');
 		}
 	}
 
@@ -554,7 +579,7 @@ class SafeMySQL
 	{
 		if (!is_array($data))
 		{
-			$this->error("Value for IN (?a) placeholder should be array");
+			$this->error('Value for IN (?a) placeholder should be array');
 			return;
 		}
 		if (!$data)
@@ -574,30 +599,30 @@ class SafeMySQL
 	{
 		if (!is_array($data))
 		{
-			$this->error("SET (?u) placeholder expects array, ".gettype($data)." given");
+			$this->error('SET (?u) placeholder expects array, '.gettype($data).' given');
 			return;
 		}
 		if (!$data)
 		{
-			$this->error("Empty array for SET (?u) placeholder");
+			$this->error('Empty array for SET (?u) placeholder');
 			return;
 		}
 		$query = $comma = '';
 		foreach ($data as $key => $value)
 		{
 			$query .= $comma.$this->escapeIdent($key).'='.$this->escapeString($value);
-			$comma  = ",";
+			$comma  = ',';
 		}
 		return $query;
 	}
 
 	private function error($err)
 	{
-		$err  = __CLASS__.": ".$err;
+		$err  = __CLASS__.': '.$err;
 
 		if ( $this->emode == 'error' )
 		{
-			$err .= ". Error initiated in ".$this->caller().", thrown";
+			$err .= '. Error initiated in '.$this->caller().', thrown';
 			trigger_error($err,E_USER_ERROR);
 		} else {
 			throw new $this->exname($err);
@@ -612,7 +637,7 @@ class SafeMySQL
 		{
 			if ( isset($t['class']) && $t['class'] == __CLASS__ )
 			{
-				$caller = $t['file']." on line ".$t['line'];
+				$caller = $t['file'].' on line '.$t['line'];
 			} else {
 				break;
 			}
