@@ -65,6 +65,7 @@ class SafeMySQL
 	private $stats;
 	private $emode;
 	private $exname;
+	private $charset;
 
 	private static $defaults = array(
 		'host'      => 'localhost',
@@ -110,8 +111,9 @@ class SafeMySQL
 	{
 		$opt = array_merge(self::$defaults,$opt);
 
-		$this->emode  = $opt['errmode'];
-		$this->exname = $opt['exception'];
+		$this->emode   = $opt['errmode'];
+		$this->exname  = $opt['exception'];
+		$this->charset = self::$encodings[$opt['charset']];
 
 		if ($opt['pconnect'])
 		{
@@ -125,8 +127,6 @@ class SafeMySQL
 		}
 
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
-		mb_regex_encoding(self::$encodings[$opt['charset']]) or $this->error('Unable to set encoding');
-
 		unset($opt); // I am paranoid
 	}
 
@@ -569,6 +569,7 @@ class SafeMySQL
 	{
 		if ($value)
 		{
+			mb_regex_encoding($this->charset) or $this->error('Unable to set encoding');
 			return '`'.mb_ereg_replace('`','``',$value).'`';
 		} else {
 			$this->error('Empty value for identifier (?n) placeholder');
