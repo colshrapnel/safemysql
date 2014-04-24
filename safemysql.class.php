@@ -66,6 +66,7 @@ class SafeMySQL
 	private $emode;
 	private $exname;
 	private $charset;
+	private $strs;
 
 	private static $defaults = array(
 		'host'      => 'localhost',
@@ -103,6 +104,12 @@ class SafeMySQL
 		'utf16le' => 'UTF-16LE',
 		'utf32'   => 'UTF-32',
 	);
+	
+	private static $strs = array(
+		'NULL',
+		',',
+		'=',
+	);
 
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
@@ -114,6 +121,11 @@ class SafeMySQL
 		$this->emode   = $opt['errmode'];
 		$this->exname  = $opt['exception'];
 		$this->charset = self::$encodings[$opt['charset']];
+		$this->strs    = array();
+		foreach (self::$strs as $s)
+		{
+			$this->strs[$s] = mb_convert_encoding($s,$this->charset,'ASCII');
+		}
 
 		if ($opt['pconnect'])
 		{
@@ -508,7 +520,8 @@ class SafeMySQL
 			}
 			$value = array_shift($args);
 
-			switch (mb_ereg_search_getregs()) {
+			switch (mb_ereg_search_getregs())
+			{
 				case '?n':
 					$part = $this->escapeIdent($value);
 					break;
@@ -525,7 +538,7 @@ class SafeMySQL
 					$part = $this->createSET($value);
 					break;
 				case '?p':
-					$part = $value;
+					$part = $this->checkParsed($value);
 					break;
 			}
 			$query .= mb_strcut($raw,$last_pos,$pos[0]-$last_pos,$this->charset) . $part;
@@ -533,12 +546,21 @@ class SafeMySQL
 		}
 		return $query . mb_strcut($raw,$last_pos,null,$this->charset);
 	}
+	
+	private function checkParsed($value) {
+		if (!mb_check_encoding($value, $this->charset))
+		{
+			$this->error('Parsed (?p) placeholder not valid in '.$this->charset.' encoding');
+			return;
+		}
+		return $value;
+	}
 
 	private function escapeInt($value)
 	{
 		if ($value === NULL)
 		{
-			return 'NULL';
+			return $this->strs['NULL'];
 		}
 		if(!is_numeric($value))
 		{
@@ -549,14 +571,14 @@ class SafeMySQL
 		{
 			$value = number_format($value, 0, '.', ''); // may lose precision on big numbers
 		} 
-		return $value;
+		return mb_convert_encoding($value,$this->charset,'ASCII');
 	}
 
 	private function escapeString($value)
 	{
 		if ($value === NULL)
 		{
-			return 'NULL';
+			return $this->strs['NULL'];
 		}
 		return	"'".mysqli_real_escape_string($this->conn,$value)."'";
 	}
@@ -581,13 +603,13 @@ class SafeMySQL
 		}
 		if (!$data)
 		{
-			return 'NULL';
+			return $this->strs['NULL'];
 		}
 		$query = $comma = '';
 		foreach ($data as $value)
 		{
 			$query .= $comma.$this->escapeString($value);
-			$comma  = ",";
+			$comma  = $this->strs[','];
 		}
 		return $query;
 	}
@@ -607,8 +629,8 @@ class SafeMySQL
 		$query = $comma = '';
 		foreach ($data as $key => $value)
 		{
-			$query .= $comma.$this->escapeIdent($key).'='.$this->escapeString($value);
-			$comma  = ',';
+			$query .= $comma.$this->escapeIdent($key).$this->strs['='].$this->escapeString($value);
+			$comma  = $this->strs[','];
 		}
 		return $query;
 	}
