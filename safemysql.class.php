@@ -493,27 +493,22 @@ class SafeMySQL
 
 	private function prepareQuery($args)
 	{
-		$query = '';
-		$raw   = array_shift($args);
-		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
-		$anum  = count($args);
-		$pnum  = floor(count($array) / 2);
-		if ( $pnum != $anum )
-		{
-			$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
-		}
+		$query    = '';
+		$last_pos = 0;
+		$raw      = array_shift($args);
 
-		foreach ($array as $i => $part)
+		mb_regex_encoding($this->charset) or $this->error('Unable to set encoding');
+		mb_ereg_search_init($raw, '\\?[nsiuap]');
+
+		while ($pos = mb_ereg_search_pos())
 		{
-			if ( ($i % 2) == 0 )
+			if (empty($args))
 			{
-				$query .= $part;
-				continue;
+				$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
 			}
-
 			$value = array_shift($args);
-			switch ($part)
-			{
+
+			switch (mb_ereg_search_getregs()) {
 				case '?n':
 					$part = $this->escapeIdent($value);
 					break;
@@ -533,9 +528,10 @@ class SafeMySQL
 					$part = $value;
 					break;
 			}
-			$query .= $part;
+			$query .= mb_strcut($raw,$last_pos,$pos[0]-$last_pos,$this->charset) . $part;
+			$last_pos = $pos[0] + $pos[1];
 		}
-		return $query;
+		return $query . mb_strcut($raw,$last_pos,null,$this->charset);
 	}
 
 	private function escapeInt($value)
