@@ -59,10 +59,6 @@
  * 
  */
 
-define( 'QUOTES_ASCII', '`\'"');
-define( 'PARAMS_ASCII', 'nsiuap');
-define('PATTERN_ASCII', '[' . QUOTES_ASCII . ']|\\?[' . PARAMS_ASCII . ']');
-
 class SafeMySQL
 {
 	private $conn;
@@ -122,6 +118,9 @@ class SafeMySQL
 
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
+	const QUOTES_ASCII = '`\'"';
+	const PARAMS_ASCII = 'nsiuap';
+	define('PATTERN_ASCII', '[' . self::QUOTES_ASCII . ']|\\?[' . self::PARAMS_ASCII . ']');
 
 	function __construct($opt = array())
 	{
@@ -130,7 +129,7 @@ class SafeMySQL
 		$this->emode   = $opt['errmode'];
 		$this->exname  = $opt['exception'];
 		$this->charset = self::$encodings[$opt['charset']];
-		$this->pattern = mb_convert_encoding(PATTERN_ASCII, $this->charset, 'ASCII');
+		$this->pattern = mb_convert_encoding(self::PATTERN_ASCII, $this->charset, 'ASCII');
 		$this->esc_str = mb_convert_encoding('\\', $this->charset, 'ASCII');
 		$this->esc_len = strlen($this->esc_txenc_str);
 		$this->strs    = array();
@@ -547,17 +546,19 @@ class SafeMySQL
 			$match_ascii_str = mb_convert_encoding($match_txenc_str, 'ASCII', $this->charset);
 			
 			// we've found an opening quote
-			if (strpos(QUOTES_ASCII, $match_ascii_str) !== false)
+			if (strpos(self::QUOTES_ASCII, $match_ascii_str) !== false)
 			{
 				// look for possible terminating quotes
 				while ($qpos = mb_ereg_search_pos($match_txenc_str))
 				{
-					$end = $qpos[0] + $qpos[1];
-
+					$start = $qpos[0] - $this->esc_len;
+					$end   = $qpos[0] + $qpos[1];
+					
 					// if it's escaped...
 					if (  !isset($this->sql_mode['NO_BACKSLASH_ESCAPES'])
 					  and strpos($this->quotes, $match_ascii_str) !== false
-					  and mb_strcut($statement_str, $qpos[0]-1, $this->esc_len) === $this->esc_str)
+					  and $start >= 0
+					  and substr($statement_str, $start, $this->esc_len) === $this->esc_str)
 					{
 						// keep looking
 						continue;
