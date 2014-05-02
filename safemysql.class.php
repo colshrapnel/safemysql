@@ -67,8 +67,13 @@ class SafeMySQL
 	private $exname;
 	private $charset;
 	private $strs;
-
-	private static $defaults = array(
+	private $sql_mode;
+	private $quotes;
+	private $pattern;
+	private $esc_str;
+	private $esc_len;
+	
+	private static final $defaults = array(
 		'host'      => 'localhost',
 		'user'      => 'root',
 		'pass'      => '',
@@ -81,7 +86,7 @@ class SafeMySQL
 		'exception' => 'Exception', //Exception class name
 	);
 
-	private static $encodings = array(		
+	private static final $encodings = array(		
 		'ascii'   => 'ASCII',
 		'big5'    => 'BIG-5',
 		'cp1251'  => 'Windows-1251',
@@ -105,11 +110,15 @@ class SafeMySQL
 		'utf32'   => 'UTF-32',
 	);
 	
-	private static $strs = array(
+	private static final $strs = array(
 		'NULL',
 		',',
 		'=',
 	);
+
+	private static final $aquotes_ascii = '`\'"';
+	private static final $phtypes_ascii = 'nsiuap';
+	private static final $pattern = "[{self::$aquotes_ascii}]|\\?[{self::$phtypes_ascii}]";
 
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
@@ -121,10 +130,14 @@ class SafeMySQL
 		$this->emode   = $opt['errmode'];
 		$this->exname  = $opt['exception'];
 		$this->charset = self::$encodings[$opt['charset']];
+		$this->pattern = mb_convert_encoding(self::$pattern, $this->charset, 'ASCII');
+		$this->esc_str = mb_convert_encoding('\\', $this->charset, 'ASCII');
+		$this->esc_len = strlen($this->esc_txenc_str);
 		$this->strs    = array();
+
 		foreach (self::$strs as $s)
 		{
-			$this->strs[$s] = mb_convert_encoding($s,$this->charset,'ASCII');
+			$this->strs[$s] = mb_convert_encoding($s, $this->charset, 'ASCII');
 		}
 
 		if ($opt['pconnect'])
@@ -140,6 +153,17 @@ class SafeMySQL
 
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
 		unset($opt); // I am paranoid
+
+		$this->getSQLmode();
+	}
+	
+	private function getSQLmode()
+	{
+		$this->sql_mode = array();
+		$sql_modes = explode(',', $this->getOne('SHOW SESSION VARIABLES LIKE \'sql_mode\''));
+		foreach ($sql_modes as $mode) $this->sql_mode[$mode] = true;
+		
+		$this->quotes = isset($this->sql_mode['ANSI_QUOTES']) ? '\'' : '\'"';
 	}
 
 	/**
@@ -505,22 +529,72 @@ class SafeMySQL
 
 	private function prepareQuery($args)
 	{
-		$query    = '';
-		$last_pos = 0;
-		$raw      = array_shift($args);
-
+		$position_last = 0;
+		
+		$statement_str = array_shift($args);
+		$statement_len = strlen($statement_str);
+		$statement_sql = '';
+		
+		$anum = count($args);
+		
 		mb_regex_encoding($this->charset) or $this->error('Unable to set encoding');
-		mb_ereg_search_init($raw, '\\?[nsiuap]');
-
-		while ($pos = mb_ereg_search_pos())
+		mb_ereg_search_init($statement_str);
+		
+		while ($pos = mb_ereg_search_pos($this->pattern_txenc))
 		{
+			$match_txenc_str = mb_ereg_search_getregs()[0];
+			$match_txenc_len = strlen($match_txenc_str);
+			$match_ascii_str = mb_convert_encoding($match_txenc_str, 'ASCII', $this->charset);
+			
+			// we've found an opening quote
+			if (strpos(self::$aquotes_ascii, $match_ascii_str) !== false)
+			{
+				// look for possible terminating quotes
+				while ($qpos = mb_ereg_search_pos($match_txenc_str))
+				{
+					$end = $qpos[0] + $qpos[1];
+
+					// if it's escaped...
+					if (  !isset($this->sql_mode['NO_BACKSLASH_ESCAPES'])
+					  and strpos($this->quotes, $match_ascii_str) !== false
+					  and mb_strcut($statement_str, $qpos[0]-1, $this->esc_len) === $this->esc_str)
+					{
+						// keep looking
+						continue;
+					}
+					
+					// if it's doubled...
+					elseif (substr($statement_str, $end, $match_txenc_len) === $match_txenc_str) {
+						$end += $match_txenc_len;
+						
+						// ...and the double ends the statement, give up
+						if ($end >= $statement_len) {
+							$qpos = false;
+							break;
+						}
+						
+						// else skip the double and keep looking
+						mb_ereg_search_setpos($end);
+						continue;
+					}
+					
+					// found terminating pair
+					else break;
+				}
+				// no terminating pair found
+				if (!$qpos) $this->error('Unterminated quote found: [' . substr($statement_str, $pos[0]) . ']');
+				
+				// look for next placeholder
+				continue;
+			}
+			
 			if (empty($args))
 			{
-				$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
+				$this->error("Number of args ($anum) doesn't match number of placeholders in [$raw]");
 			}
 			$value = array_shift($args);
-
-			switch (mb_ereg_search_getregs())
+			
+			switch ($match_ascii_str)
 			{
 				case '?n':
 					$part = $this->escapeIdent($value);
@@ -541,10 +615,10 @@ class SafeMySQL
 					$part = $this->checkParsed($value);
 					break;
 			}
-			$query .= mb_strcut($raw,$last_pos,$pos[0]-$last_pos,$this->charset) . $part;
+			$query .= mb_strcut($statement_str, $last_pos, $pos[0]-$last_pos, $this->charset) . $part;
 			$last_pos = $pos[0] + $pos[1];
 		}
-		return $query . mb_strcut($raw,$last_pos,null,$this->charset);
+		return $query . mb_strcut($statement_str, $last_pos, null, $this->charset);
 	}
 	
 	private function checkParsed($value) {
