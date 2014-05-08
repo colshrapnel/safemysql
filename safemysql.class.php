@@ -620,7 +620,8 @@ class SafeMySQL
 					break;
 			}
 
-			switch (mb_convert_encoding(mb_substr($match, 0, 2, $this->charset), 'ASCII', $this->charset))
+			$type = mb_convert_encoding(mb_substr($match, 0, 2, $this->charset), 'ASCII', $this->charset);
+			switch ($type)
 			{
 				case '?n':
 					$part = $this->escapeIdent($value);
@@ -641,7 +642,7 @@ class SafeMySQL
 					$part = $this->checkParsed($value);
 					break;
 				default:
-					$this->error("Unhandled parameter type ($chrs2_ascii_str)");
+					$this->error("Unhandled parameter type ($type)");
 			}
 			$statement_sql .= mb_strcut($statement_str, $position_last, $pos[0]-$position_last, $this->charset) . $part;
 			$position_last  = $pos[0] + $pos[1];
