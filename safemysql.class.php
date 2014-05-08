@@ -120,7 +120,7 @@ class SafeMySQL
 	const RESULT_NUM   = MYSQLI_NUM;
 	const QUOTES_ASCII = '`\'"';
 	const PARAMS_ASCII = 'nsiuap';
-	define('PATTERN_ASCII', '[' . self::QUOTES_ASCII . ']|\\?[' . self::PARAMS_ASCII . ']');
+	define('PATTERN_ASCII', '[' . self::QUOTES_ASCII . ']|\\?[' . self::PARAMS_ASCII . '](:[^\\d\\s]\\S*)?\\b');
 
 	function __construct($opt = array())
 	{
@@ -534,8 +534,12 @@ class SafeMySQL
 		$statement_len = strlen($statement_str);
 		$statement_sql = '';
 		
-		$anum = count($args);
+		$anon_args = array_filter(array_keys($args), 'is_int');
+		$name_args = array_diff_key($args, $anon_args);
+		$used_args = array();
 		
+		$anum = count($anon_args);
+
 		mb_regex_encoding($this->charset) or $this->error('Unable to set encoding');
 		mb_ereg_search_init($statement_str);
 		
@@ -543,10 +547,12 @@ class SafeMySQL
 		{
 			$match_txenc_str = mb_ereg_search_getregs()[0];
 			$match_txenc_len = strlen($match_txenc_str);
-			$match_ascii_str = mb_convert_encoding($match_txenc_str, 'ASCII', $this->charset);
+			
+			$chrs2_txenc_str = mb_substr($match_txenc_str, 0, 2, $this->charset);
+			$chrs2_ascii_str = mb_convert_encoding($chrs2_txenc_str, 'ASCII', $this->charset);
 			
 			// we've found an opening quote
-			if (strpos(self::QUOTES_ASCII, $match_ascii_str) !== false)
+			if (strpos(self::QUOTES_ASCII, $chrs2_ascii_str) !== false)
 			{
 				// look for possible terminating quotes
 				while ($qpos = mb_ereg_search_pos($match_txenc_str))
@@ -556,7 +562,7 @@ class SafeMySQL
 					
 					// if it's escaped...
 					if (  !isset($this->sql_mode['NO_BACKSLASH_ESCAPES'])
-					  and strpos($this->quotes, $match_ascii_str) !== false
+					  and strpos($this->quotes, $chrs2_ascii_str) !== false
 					  and $start >= 0
 					  and substr($statement_str, $start, $this->esc_len) === $this->esc_str)
 					{
@@ -589,13 +595,26 @@ class SafeMySQL
 				continue;
 			}
 			
-			if (empty($args))
+			if ($match_txenc_len > strlen($chrs2_txenc_str))
 			{
-				$this->error("Number of args ($anum) doesn't match number of placeholders in [$raw]");
+				$key = mb_substr($match_txenc_str, 3, $match_txenc_len, $this->charset);
+				if (!isset($name_args[$key]))
+				{
+					$this->error("Named placeholder ($key) not found amongst provided args");
+				}
+				$value = $args[$key];
+				// don't unset - allows named placeholders to be used multiple times
+				// instead, record that this argument has been used
+				$used_args[$key] = true;
+			} else {
+				if (empty($anon_args))
+				{
+					$this->error("More anonymous placeholders than in [$raw] than provided integer-keyed args ($anum)");
+				}
+				$value = array_shift($anon_args);
 			}
-			$value = array_shift($args);
 			
-			switch ($match_ascii_str)
+			switch ($chrs2_ascii_str)
 			{
 				case '?n':
 					$part = $this->escapeIdent($value);
@@ -615,11 +634,28 @@ class SafeMySQL
 				case '?p':
 					$part = $this->checkParsed($value);
 					break;
+				default:
+					$this->error("Unhandled parameter type ($chrs2_ascii_str)");
 			}
-			$query .= mb_strcut($statement_str, $last_pos, $pos[0]-$last_pos, $this->charset) . $part;
+			$statement_sql .= mb_strcut($statement_str, $last_pos, $pos[0]-$last_pos, $this->charset) . $part;
 			$last_pos = $pos[0] + $pos[1];
 		}
-		return $query . mb_strcut($statement_str, $last_pos, null, $this->charset);
+		$statement_sql . mb_strcut($statement_str, $last_pos, null, $this->charset);
+		
+		if (count($anon_args))
+		{
+			$pnum = $anum - count($anon_args);
+			$this->error("$anum indexed values provided, but only $pnum used by anonymous placeholders");
+		}
+		
+		$nnum = count($name_args);
+		$unum = count($used_args);
+		if ($nnum != $unum)
+		{
+			$this->error("$nnum associative values provided, but only $unum used by named placeholders");
+		}
+		
+		return $statement_sql;
 	}
 	
 	private function checkParsed($value) {
