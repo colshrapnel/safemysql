@@ -525,96 +525,102 @@ class SafeMySQL
 		$this->cutStats();
 		return $res;
 	}
+	
+	private function skipQuotedPart(final $raw, final $quote_raw) {
+		final $len = strlen($quote_raw);
+		final $quote_ascii = mb_convert_encoding($quote_raw, 'ASCII', $this->charset);
+		
+		// look for possible terminating quotes
+		while ($qpos = mb_ereg_search_pos($quote_raw))
+		{
+			$start = $qpos[0] - $this->esc_len;
+			$end   = $qpos[0] + $qpos[1];
+			
+			// if it's escaped...
+			if (  !isset($this->sql_mode['NO_BACKSLASH_ESCAPES'])
+			  and strpos($this->quotes, $quote_ascii) !== false
+			  and $start >= 0
+			  and substr($raw, $start, $this->esc_len) === $this->esc_str)
+			{
+				// keep looking
+				continue;
+			}
+			
+			// if it's doubled...
+			elseif (substr($raw, $end, $len) === $quote_raw) {
+				$end += $len;
+				
+				// ...and the double ends the statement, give up
+				if ($end >= strlen($raw)) return false;
+
+				// else skip the double and keep looking
+				mb_ereg_search_setpos($end);
+				continue;
+			}
+			
+			// found terminating pair
+			return true;
+		}
+		return false;
+	}
 
 	private function prepareQuery($args)
 	{
+		final $statement_str = array_shift($args);
+
+		final $anon_args = array_filter(array_keys($args), 'is_int');
+		final $name_args = array_diff_key($args, $anon_args);
+		final $used_args = array();
+		
+		final $anum = count($anon_args);
+
+		$statement_sql = '';
 		$position_last = 0;
 		
-		$statement_str = array_shift($args);
-		$statement_len = strlen($statement_str);
-		$statement_sql = '';
-		
-		$anon_args = array_filter(array_keys($args), 'is_int');
-		$name_args = array_diff_key($args, $anon_args);
-		$used_args = array();
-		
-		$anum = count($anon_args);
-
 		mb_regex_encoding($this->charset) or $this->error('Unable to set encoding');
 		mb_ereg_search_init($statement_str);
 		
 		while ($pos = mb_ereg_search_pos($this->pattern_txenc))
 		{
-			$match_txenc_str = mb_ereg_search_getregs()[0];
-			$match_txenc_len = strlen($match_txenc_str);
+			$match = mb_ereg_search_getregs()[0];
 			
-			$chrs2_txenc_str = mb_substr($match_txenc_str, 0, 2, $this->charset);
-			$chrs2_ascii_str = mb_convert_encoding($chrs2_txenc_str, 'ASCII', $this->charset);
-			
-			// we've found an opening quote
-			if (strpos(self::QUOTES_ASCII, $chrs2_ascii_str) !== false)
+			switch (mb_strlen($match, $this->charset))
 			{
-				// look for possible terminating quotes
-				while ($qpos = mb_ereg_search_pos($match_txenc_str))
-				{
-					$start = $qpos[0] - $this->esc_len;
-					$end   = $qpos[0] + $qpos[1];
-					
-					// if it's escaped...
-					if (  !isset($this->sql_mode['NO_BACKSLASH_ESCAPES'])
-					  and strpos($this->quotes, $chrs2_ascii_str) !== false
-					  and $start >= 0
-					  and substr($statement_str, $start, $this->esc_len) === $this->esc_str)
+				case 1: // found a quote character
+					if (!$this->skipQuotedPart($statement_str, $match))
 					{
-						// keep looking
-						continue;
+						$this->error('Unterminated quote found: [' . substr($statement_str, $pos[0]) . ']');
 					}
 					
-					// if it's doubled...
-					elseif (substr($statement_str, $end, $match_txenc_len) === $match_txenc_str) {
-						$end += $match_txenc_len;
-						
-						// ...and the double ends the statement, give up
-						if ($end >= $statement_len) {
-							$qpos = false;
-							break;
-						}
-						
-						// else skip the double and keep looking
-						mb_ereg_search_setpos($end);
-						continue;
-					}
-					
-					// found terminating pair
-					else break;
-				}
-				// no terminating pair found
-				if (!$qpos) $this->error('Unterminated quote found: [' . substr($statement_str, $pos[0]) . ']');
+					// continue searching
+					continue 2;
 				
-				// look for next placeholder
-				continue;
+				case 2: // found an anonymous placeholder
+					if (empty($anon_args))
+					{
+						$this->error("More anonymous placeholders than in [$raw] than provided integer-keyed args ($anum)");
+					}
+					
+					// get the value
+					$value = array_shift($anon_args);
+					break;
+				
+				default: // found a named placeholder
+					$key = mb_substr($match, 3, mb_strlen($match_len, $this->charset), $this->charset);
+					if (!isset($name_args[$key]))
+					{
+						$this->error("Named placeholder ($key) not found amongst provided args");
+					}
+					
+					// get the value, but don't unset
+					// allows named placeholders to be used multiple times
+					// instead, record that this argument has been used
+					$value = $args[$key];
+					$used_args[$key] = true;
+					break;
 			}
-			
-			if ($match_txenc_len > strlen($chrs2_txenc_str))
-			{
-				$key = mb_substr($match_txenc_str, 3, $match_txenc_len, $this->charset);
-				if (!isset($name_args[$key]))
-				{
-					$this->error("Named placeholder ($key) not found amongst provided args");
-				}
-				$value = $args[$key];
-				// don't unset - allows named placeholders to be used multiple times
-				// instead, record that this argument has been used
-				$used_args[$key] = true;
-			} else {
-				if (empty($anon_args))
-				{
-					$this->error("More anonymous placeholders than in [$raw] than provided integer-keyed args ($anum)");
-				}
-				$value = array_shift($anon_args);
-			}
-			
-			switch ($chrs2_ascii_str)
+
+			switch (mb_convert_encoding(mb_substr($match, 0, 2, $this->charset), 'ASCII', $this->charset))
 			{
 				case '?n':
 					$part = $this->escapeIdent($value);
@@ -637,11 +643,12 @@ class SafeMySQL
 				default:
 					$this->error("Unhandled parameter type ($chrs2_ascii_str)");
 			}
-			$statement_sql .= mb_strcut($statement_str, $last_pos, $pos[0]-$last_pos, $this->charset) . $part;
-			$last_pos = $pos[0] + $pos[1];
+			$statement_sql .= mb_strcut($statement_str, $position_last, $pos[0]-$position_last, $this->charset) . $part;
+			$position_last  = $pos[0] + $pos[1];
 		}
-		$statement_sql . mb_strcut($statement_str, $last_pos, null, $this->charset);
+		$statement_sql .= mb_strcut($statement_str, $position_last, null, $this->charset);
 		
+		// check that all provided arguments have been used
 		if (count($anon_args))
 		{
 			$pnum = $anum - count($anon_args);
