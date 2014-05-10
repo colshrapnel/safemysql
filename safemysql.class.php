@@ -158,11 +158,12 @@ class SafeMySQL
 	
 	private function getSQLmode()
 	{
-		$this->sql_mode = array();
-		$sql_modes = explode(',', $this->getOne('SHOW SESSION VARIABLES LIKE \'sql_mode\''));
-		foreach ($sql_modes as $mode) $this->sql_mode[$mode] = true;
-		
-		$this->quotes = isset($this->sql_mode['ANSI_QUOTES']) ? '\'' : '\'"';
+		$sql_mode = $this->getOne("SHOW SESSION VARIABLES LIKE 'sql_mode'");
+		if ($sql_mode === FALSE) $this->error('Unable to retrieve SQL mode');
+
+		$sql_mode       = mb_convert_encoding($sql_mode, 'ASCII', $this->charset);
+		$this->sql_mode = array_flip(explode(',', $sql_mode));
+		$this->quotes   = isset($this->sql_mode['ANSI_QUOTES']) ? '\'' : '\'"';
 	}
 
 	/**
@@ -523,38 +524,37 @@ class SafeMySQL
 			$this->error("$error. Full query: [$query]");
 		}
 		$this->cutStats();
+		$this->getSQLmode();  // in case it has changed
 		return $res;
 	}
 	
-	private function skipQuotedPart(final $raw, final $quote_raw) {
-		final $len = strlen($quote_raw);
-		final $quote_ascii = mb_convert_encoding($quote_raw, 'ASCII', $this->charset);
+	private function skipQuotedPart(final $raw, final $quote) {
+		final $escapeable = strpos($this->quotes, mb_convert_encoding($quote, 'ASCII')) !== false
+		                 && !isset($this->sql_mode['NO_BACKSLASH_ESCAPES']);
 		
 		// look for possible terminating quotes
-		while ($qpos = mb_ereg_search_pos($quote_raw))
+		while ($qpos = mb_ereg_search_pos($quote))
 		{
-			$start = $qpos[0] - $this->esc_len;
-			$end   = $qpos[0] + $qpos[1];
-			
 			// if it's escaped...
-			if (  !isset($this->sql_mode['NO_BACKSLASH_ESCAPES'])
-			  and strpos($this->quotes, $quote_ascii) !== false
-			  and $start >= 0
-			  and substr($raw, $start, $this->esc_len) === $this->esc_str)
+			if ( $escapeable
+			  && $qpos[0] >= $this->esc_len
+			  && substr($raw, $qpos[0]-$this->esc_len, $this->esc_len) === $this->esc_str)
 			{
 				// keep looking
 				continue;
 			}
 			
 			// if it's doubled...
-			elseif (substr($raw, $end, $len) === $quote_raw) {
-				$end += $len;
+			$pos = $qpos[0] + $qpos[1];
+			elseif (substr($raw, $pos, strlen($quote)) === $quote)
+			{
+				$pos += strlen($quote);
 				
 				// ...and the double ends the statement, give up
-				if ($end >= strlen($raw)) return false;
+				if ($pos >= strlen($raw)) return false;
 
 				// else skip the double and keep looking
-				mb_ereg_search_setpos($end);
+				mb_ereg_search_setpos($pos);
 				continue;
 			}
 			
@@ -567,6 +567,8 @@ class SafeMySQL
 	private function prepareQuery($args)
 	{
 		final $statement_str = array_shift($args);
+		final $placemarker   = mb_convert_encoding('?', $this->charset, 'ASCII');
+		final $namedivider   = mb_convert_encoding(':', $this->charset, 'ASCII');
 
 		final $anon_args = array_filter(array_keys($args), 'is_int');
 		final $name_args = array_diff_key($args, $anon_args);
@@ -577,37 +579,33 @@ class SafeMySQL
 		$statement_sql = '';
 		$position_last = 0;
 		
-		mb_regex_encoding($this->charset) or $this->error('Unable to set encoding');
+		mb_internal_encoding($this->charset) or $this->error('Unable to set internal encoding');;
+		mb_regex_encoding($this->charset) or $this->error('Unable to set regex encoding');
 		mb_ereg_search_init($statement_str);
 		
 		while ($pos = mb_ereg_search_pos($this->pattern_txenc))
 		{
 			$match = mb_ereg_search_getregs()[0];
 			
-			switch (mb_strlen($match, $this->charset))
+			if (substr($match, 0, strlen($placemarker)) === $placemarker)
 			{
-				case 1: // found a quote character
-					if (!$this->skipQuotedPart($statement_str, $match))
-					{
-						$this->error('Unterminated quote found: [' . substr($statement_str, $pos[0]) . ']');
-					}
-					
-					// continue searching
-					continue 2;
+				// found a placeholder
+				final $placeholder = mb_split($namedivider, $match, 2);
 				
-				case 2: // found an anonymous placeholder
+				if (count($placeholder) == 1)
+				{
+					// found an anonymous placeholder
 					if (empty($anon_args))
 					{
-						$this->error("More anonymous placeholders than in [$raw] than provided integer-keyed args ($anum)");
+						$this->error("More anonymous placeholders in [$statement_raw] than provided integer-keyed args ($anum)");
 					}
 					
 					// get the value
 					$value = array_shift($anon_args);
-					break;
-				
-				default: // found a named placeholder
-					$key = mb_substr($match, 3, mb_strlen($match_len, $this->charset), $this->charset);
-					if (!isset($name_args[$key]))
+				} else {
+					// found a named placeholder
+					final $name = $placeholder[1];
+					if (!isset($name_args[$name]))
 					{
 						$this->error("Named placeholder ($key) not found amongst provided args");
 					}
@@ -615,39 +613,54 @@ class SafeMySQL
 					// get the value, but don't unset
 					// allows named placeholders to be used multiple times
 					// instead, record that this argument has been used
-					$value = $args[$key];
-					$used_args[$key] = true;
-					break;
-			}
+					$value = $name_args[$name];
+					$used_args[$name] = true;
+				}
 
-			$type = mb_convert_encoding(mb_substr($match, 0, 2, $this->charset), 'ASCII', $this->charset);
-			switch ($type)
-			{
-				case '?n':
-					$part = $this->escapeIdent($value);
-					break;
-				case '?s':
-					$part = $this->escapeString($value);
-					break;
-				case '?i':
-					$part = $this->escapeInt($value);
-					break;
-				case '?a':
-					$part = $this->createIN($value);
-					break;
-				case '?u':
-					$part = $this->createSET($value);
-					break;
-				case '?p':
-					$part = $this->checkParsed($value);
-					break;
-				default:
-					$this->error("Unhandled parameter type ($type)");
+				final $type = mb_convert_encoding($placeholder[0], 'ASCII');
+				switch ($type)
+				{
+					case '?n':
+						$part = $this->escapeIdent($value);
+						break;
+					case '?s':
+						$part = $this->escapeString($value);
+						break;
+					case '?i':
+						$part = $this->escapeInt($value);
+						break;
+					case '?a':
+						$part = $this->createIN($value);
+						break;
+					case '?u':
+						$part = $this->createSET($value);
+						break;
+					case '?p':
+						$part = $this->checkParsed($value);
+						break;
+					default:
+						$this->error("Unhandled parameter type ($type)");
+				}
+				$statement_sql .= mb_strcut($statement_str, $position_last, $pos[0]-$position_last) . $part;
+
+				// need to reinitialise the search as call to mb_split() reset the engine state
+				mb_ereg_search_init($statement_str);
+				mb_ereg_search_setpos($position_last = $pos[0] + $pos[1]);
 			}
-			$statement_sql .= mb_strcut($statement_str, $position_last, $pos[0]-$position_last, $this->charset) . $part;
-			$position_last  = $pos[0] + $pos[1];
+			elseif (strpos(self::QUOTES_ASCII, mb_convert_encoding($match, 'ASCII')) !== false)
+			{
+				// found a quote character
+				if (!$this->skipQuotedPart($statement_str, $match))
+				{
+					$this->error('Unterminated quote found: [' . substr($statement_str, $pos[0]) . ']');
+				}
+			}
+			else
+			{
+				$this->error("Encountered unexpected match ($match) whilst parsing statement [$statement_raw]");
+			}
 		}
-		$statement_sql .= mb_strcut($statement_str, $position_last, null, $this->charset);
+		$statement_sql .= mb_strcut($statement_str, $position_last, null);
 		
 		// check that all provided arguments have been used
 		if (count($anon_args))
@@ -658,7 +671,7 @@ class SafeMySQL
 		
 		$nnum = count($name_args);
 		$unum = count($used_args);
-		if ($nnum != $unum)
+		if ($nnum > $unum)
 		{
 			$this->error("$nnum associative values provided, but only $unum used by named placeholders");
 		}
