@@ -3,7 +3,7 @@
  * @author col.shrapnel@gmail.com
  * @link http://phpfaq.ru/safemysql
  * 
- * Safe and convenient vay to handle SQL queries utilizing type-hinted placeholders.
+ * Safe and convenient way to handle SQL queries utilizing type-hinted placeholders.
  * 
  * Key features
  * - set of helper functions to get the desired result right out of query, like in PEAR::DB
