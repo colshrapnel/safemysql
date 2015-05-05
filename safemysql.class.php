@@ -104,6 +104,20 @@ class SafeMySQL
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
 		unset($opt); // I am paranoid
 	}
+	/**
+	 * Static function to call the class without creating a new instance
+	 * @param array $opt
+	 *
+	 * @return SafeMySQL
+	 */
+	static public function getInstanse($opt = array())
+	{
+		static $db;
+		if (!is_object($db)) {
+			$db = new SafeMySQL($opt);
+		}
+		return $db;
+	}
 
 	/**
 	 * Conventional function to run a query with placeholders. A mysqli_query wrapper with placeholders support
