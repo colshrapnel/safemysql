@@ -498,33 +498,33 @@ class SafeMySQL
 				++$i;
 				switch ($raw{$i})
 				{
-					case 'n':
-						$value = array_shift($args);
-						$query .= $this->escapeIdent($value);
-						break;
-					case 's':
-						$value = array_shift($args);
-						$query .= $this->escapeString($value);
-						break;
-					case 'i':
-						$value = array_shift($args);
-						$query .= $this->escapeInt($value);
-						break;
-					case 'a':
-						$value = array_shift($args);
-						$query .= $this->createIN($value);
-						break;
-					case 'u':
-						$value = array_shift($args);
-						$query .= $this->createSET($value);
-						break;
-					case 'p':
-						$value = array_shift($args);
-						$query .= $value;
-						break;
-					default:
-						$query .= '?' . $raw{$i};
-						break;
+				case 'n':
+					$value = array_shift($args);
+					$query .= $this->escapeIdent($value);
+					break;
+				case 's':
+					$value = array_shift($args);
+					$query .= $this->escapeString($value);
+					break;
+				case 'i':
+					$value = array_shift($args);
+					$query .= $this->escapeInt($value);
+					break;
+				case 'a':
+					$value = array_shift($args);
+					$query .= $this->createIN($value);
+					break;
+				case 'u':
+					$value = array_shift($args);
+					$query .= $this->createSET($value);
+					break;
+				case 'p':
+					$value = array_shift($args);
+					$query .= $value;
+					break;
+				default:
+					$query .= '?' . $raw{$i};
+					break;
 				}
 			}
 			else
