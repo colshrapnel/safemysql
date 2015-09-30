@@ -490,46 +490,54 @@ class SafeMySQL
 	{
 		$query = '';
 		$raw   = array_shift($args);
-		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
-		$anum  = count($args);
-		$pnum  = floor(count($array) / 2);
-		if ( $pnum != $anum )
+		
+		for ($i = 0, $len = strlen($raw); $i < $len - 1; ++$i)
+		{
+			if ($raw{$i} == '?') 
+			{
+				++$i;
+				switch ($raw{$i})
+				{
+					case 'n':
+						$value = array_shift($args);
+						$query .= $this->escapeIdent($value);
+						break;
+					case 's':
+						$value = array_shift($args);
+						$query .= $this->escapeString($value);
+						break;
+					case 'i':
+						$value = array_shift($args);
+						$query .= $this->escapeInt($value);
+						break;
+					case 'a':
+						$value = array_shift($args);
+						$query .= $this->createIN($value);
+						break;
+					case 'u':
+						$value = array_shift($args);
+						$query .= $this->createSET($value);
+						break;
+					case 'p':
+						$value = array_shift($args);
+						$query .= $value;
+						break;
+					default:
+						$query .= '?' . $raw{$i};
+						break;
+				}
+			}
+			else
+			{
+				$query .= $raw{$i};
+			}
+		}
+		
+		if (count($args))
 		{
 			$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
 		}
-
-		foreach ($array as $i => $part)
-		{
-			if ( ($i % 2) == 0 )
-			{
-				$query .= $part;
-				continue;
-			}
-
-			$value = array_shift($args);
-			switch ($part)
-			{
-				case '?n':
-					$part = $this->escapeIdent($value);
-					break;
-				case '?s':
-					$part = $this->escapeString($value);
-					break;
-				case '?i':
-					$part = $this->escapeInt($value);
-					break;
-				case '?a':
-					$part = $this->createIN($value);
-					break;
-				case '?u':
-					$part = $this->createSET($value);
-					break;
-				case '?p':
-					$part = $value;
-					break;
-			}
-			$query .= $part;
-		}
+		
 		return $query;
 	}
 
