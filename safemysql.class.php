@@ -491,47 +491,56 @@ class SafeMySQL
 		$query = '';
 		$raw   = array_shift($args);
 		
-		for ($i = 0, $len = strlen($raw); $i < $len - 1; ++$i)
+		$l = 0; $r = 0;
+		$raw_len = strlen($raw);
+		
+		
+		for (; ($r = strpos($raw, '?', $l)) !== FALSE and $r+1 < $raw_len; $l = $r+1)
 		{
-			if ($raw{$i} == '?') 
+			$i = $r + 1;
+			$part = "";
+			
+			$placeholder = $raw{$i};
+			
+			switch ($placeholder)
 			{
-				++$i;
-				switch ($raw{$i})
-				{
-				case 'n':
-					$value = array_shift($args);
-					$query .= $this->escapeIdent($value);
-					break;
-				case 's':
-					$value = array_shift($args);
-					$query .= $this->escapeString($value);
-					break;
-				case 'i':
-					$value = array_shift($args);
-					$query .= $this->escapeInt($value);
-					break;
-				case 'a':
-					$value = array_shift($args);
-					$query .= $this->createIN($value);
-					break;
-				case 'u':
-					$value = array_shift($args);
-					$query .= $this->createSET($value);
-					break;
-				case 'p':
-					$value = array_shift($args);
-					$query .= $value;
-					break;
-				default:
-					$query .= '?' . $raw{$i};
-					break;
-				}
+			case 'n':
+				$value = array_shift($args);
+				$part = $this->escapeIdent($value);
+				break;
+			case 's':
+				$value = array_shift($args);
+				$part = $this->escapeString($value);
+				break;
+			case 'i':
+				$value = array_shift($args);
+				$part = $this->escapeInt($value);
+				break;
+			case 'a':
+				$value = array_shift($args);
+				$part = $this->createIN($value);
+				break;
+			case 'u':
+				$value = array_shift($args);
+				$part = $this->createSET($value);
+				break;
+			case 'p':
+				$value = array_shift($args);
+				$part = $value;
+				break;
+			default:
+				$part = '?';
+				$placeholder = false;
+				break;
 			}
-			else
-			{
-				$query .= $raw{$i};
-			}
+			
+			$query .= substr($raw, $l, $r - $l) . $part;
+			if ($placeholder !== FALSE)
+				++$r;
 		}
+		
+		if ($l < $raw_len)
+			$query .= substr($raw, $l);
 		
 		if (count($args))
 		{
