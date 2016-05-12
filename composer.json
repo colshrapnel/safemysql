@@ -2,7 +2,7 @@
     "name": "colshrapnel/safemysql",
     "description": "A real safe and convenient way to handle MySQL queries.",
     "type": "library",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "keywords": [
         "db",
         "mysql"
@@ -20,8 +20,7 @@
         "issues": "https://github.com/colshrapnel/safemysql/issues"
     },
     "require": {
-        "php": ">=5.0.0",
-        "ext-mysqli": "*"
+        "php": ">=5.0.0"
     },
     "autoload": {
         "files": ["safemysql.class.php"]

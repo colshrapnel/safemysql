@@ -38,7 +38,7 @@
  * ?p ("parsed")              - special placeholder for inserting already parsed query components without any
  *                              processing, to avoid double parsing
  * 
- * Some examples:
+ * Connection:
  *
  * $db = new SafeMySQL(); // with default settings
  * 
@@ -50,6 +50,13 @@
  * );
  * $db = new SafeMySQL($opts); // with some of the default settings overridden
  * 
+ * Alternatively, you can just pass an existing mysqli instance that will be used to run queries 
+ * instead of creating a new connection.
+ * Excellent choice for migration!
+ * 
+ * $db = new SafeMySQL(['mysqli' => $mysqli]);
+ * 
+ * Some examples:
  * 
  * $name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);
  * $data = $db->getInd('id','SELECT * FROM ?n WHERE id IN ?a','table', array(1,2));
@@ -104,7 +111,7 @@ class SafeMySQL
 		'socket'    => NULL,
 		'pconnect'  => FALSE,
 		'charset'   => 'utf8',
-		'errmode'   => 'error', //or exception
+		'errmode'   => 'exception', //or 'error'
 		'exception' => 'Exception', //Exception class name
 	);
 
@@ -117,6 +124,19 @@ class SafeMySQL
 
 		$this->emode  = $opt['errmode'];
 		$this->exname = $opt['exception'];
+
+		if (isset($opt['mysqli']))
+		{
+			if ($opt['mysqli'] instanceof mysqli)
+			{
+				$this->conn = $opt['mysqli'];
+				return;
+
+			} else {
+
+				$this->error("mysqli option must be valid instance of mysqli class");
+			}
+		}
 
 		if ($opt['pconnect'])
 		{
