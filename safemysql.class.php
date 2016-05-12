@@ -18,13 +18,25 @@
  * 
  * Supported placeholders at the moment are:
  * 
- * ?s ("string")  - strings (also DATE, FLOAT and DECIMAL)
- * ?i ("integer") - the name says it all 
- * ?n ("name")    - identifiers (table and field names) 
- * ?a ("array")   - complex placeholder for IN() operator  (substituted with string of 'a','b','c' format, without parentesis)
- * ?u ("update")  - complex placeholder for SET operator (substituted with string of `field`='value',`field`='value' format)
- * and
- * ?p ("parsed") - special type placeholder, for inserting already parsed statements without any processing, to avoid double parsing.
+ * ?s ("string")              - strings (also DATE, FLOAT and DECIMAL)
+ * ?i ("integer")             - integers
+ * ?n ("name")                - identifiers (table and field names)
+ * ?a ("array")               - complex placeholder for IN () clauses (expects an array of values; the
+ *                                    placeholder will be substituted for a string in 'a','b','c' format, without
+ *                                    parenthesis)
+ * ?u ("update")              - complex placeholder for SET clauses (expects an associative array mapping field
+ *                                    names to values; the placeholder will be substituted for a string in
+ *                                    `field` ='value', `field` ='value' format)
+ * ?m ("multi-row")           - complex placeholder for bulk INSERT queries with a VALUES clause. Expects an
+ *                                    array of arrays, with the child arrays representing rows to be inserted. The
+ *                                    placeholder will be substituted for a string in ('a', 'b', 'c'), ('e', 'f', 'g')
+ *                                    format.
+ * ?k ("key/value multi-row") - another complex placeholder for INSERT queries with VALUES clauses. Expects an array of
+ *                              associative arrays, with the associative arrays representing the rows to be inserted as
+ *                              field => value mappings. The placeholder will be substituted for a string like
+ *                              (`col1`, `col2`) VALUES ('a', 'b'), ('c', 'd')
+ * ?p ("parsed")              - special placeholder for inserting already parsed query components without any
+ *                              processing, to avoid double parsing
  * 
  * Connection:
  *
@@ -36,7 +48,7 @@
  *		'db'      => 'db',
  *		'charset' => 'latin1'
  * );
- * $db = new SafeMySQL($opts); // with some of the default settings overwritten
+ * $db = new SafeMySQL($opts); // with some of the default settings overridden
  * 
  * Alternatively, you can just pass an existing mysqli instance that will be used to run queries 
  * instead of creating a new connection.
@@ -52,18 +64,34 @@
  *
  * $ids  = $db->getCol("SELECT id FROM tags WHERE tagname = ?s",$tag);
  * $data = $db->getAll("SELECT * FROM table WHERE category IN (?a)",$ids);
- * 
- * $data = array('offers_in' => $in, 'offers_out' => $out);
- * $sql  = "INSERT INTO stats SET pid=?i,dt=CURDATE(),?u ON DUPLICATE KEY UPDATE ?u";
- * $db->query($sql,$pid,$data,$data);
- * 
+ *
  * if ($var === NULL) {
  *     $sqlpart = "field is NULL";
  * } else {
  *     $sqlpart = $db->parse("field = ?s", $var);
  * }
  * $data = $db->getAll("SELECT * FROM table WHERE ?p", $bar, $sqlpart);
+ *
+ *
+ * $data = array('offers_in' => $in, 'offers_out' => $out);
+ * $sql  = "INSERT INTO stats SET pid=?i,dt=CURDATE(),?u ON DUPLICATE KEY UPDATE ?u";
+ * $db->query($sql,$pid,$data,$data);
+ *
+ * $cars = array(
+ *     array('Audi A3', 22, 24500),
+ *     array('Ford Ka', 36, 29000),
+ *     array('Ferrari 159 S', 792, 80000)
+ * );
+ * $db->query("INSERT INTO cars (model, age, mileage) VALUES ?m", $cars);
  * 
+ * $cars = array(
+ *     array('model'=>'Audi A3',       'age'=>22,  'mileage'=>24500),
+ *     array('model'=>'Ford Ka',       'age'=>36,  'mileage'=>29000),
+ *     array('model'=>'Ferrari 159 S', 'age'=>792, 'mileage'=>80000)
+ * );
+ * $allowedColumns = array('model', 'age', 'mileage');
+ * $filteredCars = $db->filter2DArray($cars, $allowedColumns);
+ * $db->query("INSERT INTO cars ?k", $filteredCars);
  */
 
 class SafeMySQL
@@ -136,7 +164,7 @@ class SafeMySQL
 	 * @return resource|FALSE whatever mysqli_query returns
 	 */
 	public function query()
-	{	
+	{
 		return $this->rawQuery($this->prepareQuery(func_get_args()));
 	}
 
@@ -352,13 +380,14 @@ class SafeMySQL
 	}
 
 	/**
-	 * Function to parse placeholders either in the full query or a query part
-	 * unlike native prepared statements, allows ANY query part to be parsed
+	 * Function to parse placeholders either in the full query or a query part.
+	 * Unlike native prepared statements, allows ANY query part to be parsed.
 	 * 
-	 * useful for debug
-	 * and EXTREMELY useful for conditional query building
+	 * Useful for debugging.
+	 * Also EXTREMELY useful for conditional query building,
 	 * like adding various query parts using loops, conditions, etc.
-	 * already parsed parts have to be added via ?p placeholder
+	 *
+	 * Already parsed parts have to be added via ?p placeholder
 	 * 
 	 * Examples:
 	 * $query = $db->parse("SELECT * FROM table WHERE foo=?s AND bar=?s", $foo, $bar);
@@ -379,9 +408,12 @@ class SafeMySQL
 	}
 
 	/**
-	 * function to implement whitelisting feature
-	 * sometimes we can't allow a non-validated user-supplied data to the query even through placeholder
-	 * especially if it comes down to SQL OPERATORS
+	 * Simple whitelisting function.
+	 *
+	 * Sometimes we can't allow a non-validated user-supplied data to the query even through placeholder.
+	 * In such circumstances, a whitelist is the next-simplest tool at our disposal.
+	 *
+	 * If $input is in the $allowed array, returns $input. Otherwise, returns FALSE or, if provided, default.
 	 * 
 	 * Example:
 	 *
@@ -393,7 +425,7 @@ class SafeMySQL
 	 * $sql  = "SELECT * FROM table ORDER BY ?p ?p LIMIT ?i,?i"
 	 * $data = $db->getArr($sql, $order, $dir, $start, $per_page);
 	 * 
-	 * @param string $iinput   - field name to test
+	 * @param  string $input   - field name to test
 	 * @param  array  $allowed - an array with allowed variants
 	 * @param  string $default - optional variable to set if no match found. Default to false.
 	 * @return string|FALSE    - either sanitized value or FALSE
@@ -405,10 +437,10 @@ class SafeMySQL
 	}
 
 	/**
-	 * function to filter out arrays, for the whitelisting purposes
-	 * useful to pass entire superglobal to the INSERT or UPDATE query
-	 * OUGHT to be used for this purpose, 
-	 * as there could be fields to which user should have no access to.
+	 * A function to filter unwanted keys out of arrays for whitelisting purposes.
+	 * Useful when passing the entire $_GET or $_POST superglobal to an INSERT or UPDATE query.
+	 * OUGHT to be used for this purpose, as there could be fields to which user should have no
+	 * access to.
 	 * 
 	 * Example:
 	 * $allowed = array('title','url','body','rating','term','type');
@@ -433,6 +465,33 @@ class SafeMySQL
 	}
 
 	/**
+	 * A whitelisting function designed to be used in conjunction with the ?k placeholder.
+	 *
+	 * Expects to receive an array of associative arrays, and filters each of the nested arrays
+	 * using filterArray.
+	 *
+	 * Example:
+	 * $allowed      = array('title','url','body','rating','term','type');
+	 * $rows         = json_decode($_POST['rows']);
+	 * $filteredRows = $db->filter2DArray($rowList,$allowed);
+	 * $sql          = "INSERT INTO ?n ?k";
+	 * $db->query($sql,$table,$filtered);
+	 *
+	 * @param  array $input   - source array
+	 * @param  array $allowed - an array with allowed field names
+	 * @return array filtered out source array
+	 */
+	public function filter2DArray($input,$allowed)
+	{
+		$filteredArray = array();
+		foreach ($input as $row)
+		{
+			$filteredArray[] = $this->filterArray($row,$allowed);
+		}
+		return $filteredArray;
+	}
+
+	/**
 	 * Function to get last executed query. 
 	 * 
 	 * @return string|NULL either last executed query or NULL if were none
@@ -454,7 +513,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * private function which actually runs a query against Mysql server.
+	 * private function which actually executes $query.
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
@@ -490,7 +549,7 @@ class SafeMySQL
 	{
 		$query = '';
 		$raw   = array_shift($args);
-		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
+		$array = preg_split('~(\?[nsiuakmp])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
 		$anum  = count($args);
 		$pnum  = floor(count($array) / 2);
 		if ( $pnum != $anum )
@@ -523,6 +582,12 @@ class SafeMySQL
 					break;
 				case '?u':
 					$part = $this->createSET($value);
+					break;
+				case '?m':
+					$part = $this->createMultiRow($value);
+					break;
+				case '?k':
+					$part = $this->createKeyValueRows($value);
 					break;
 				case '?p':
 					$part = $value;
@@ -611,6 +676,59 @@ class SafeMySQL
 		return $query;
 	}
 
+	private function createKeyValueRows($data)
+	{
+		$columns = array_keys($data[0]);
+		$numColumns = count($columns);
+		$escapedColumns = array_map(array($this, 'escapeIdent'), $columns);
+		$query = '(' . implode(',', $escapedColumns) . ') VALUES ';
+
+		// We make sure the rows all have their values in the same order, then use createMultiRow
+		$orderedRows = array();
+		foreach ($data as $row)
+		{
+			if ( count($row) != $numColumns )
+			{
+				$this->error("Rows passed to ?k placeholder contained different numbers of elements");
+				return;
+			}
+			$orderedRow = array();
+			foreach ($columns as $column)
+			{
+				if ( !array_key_exists($column, $row) )
+				{
+					$this->error("Rows passed to ?k placeholder contained different keys");
+					return;
+				}
+				$orderedRow[] = $row[$column];
+			}
+			$orderedRows[] = $orderedRow;
+		}
+
+		$query .= $this->createMultiRow($orderedRows);
+		return $query;
+	}
+
+	private function createMultiRow($data)
+	{
+		if (!is_array($data))
+		{
+			$this->error("MultiRow (?m) placeholder expects array of arrays, ".gettype($data)." given");
+		}
+
+		$parsedRows = array();
+		foreach ($data as $row)
+		{
+			if (!is_array($row))
+			{
+				$this->error("Elements of array passed to MultiRow (?m) placeholder should be arrays; ".
+				             gettype($row)." given");
+			}
+			$parsedRows[] = '(' . $this->createIN($row) . ')';
+		}
+		return implode(',', $parsedRows);
+	}
+
 	private function error($err)
 	{
 		$err  = __CLASS__.": ".$err;
@@ -641,7 +759,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * On a long run we can eat up too much memory with mere statsistics
+	 * On a long run we can eat up too much memory with mere statistics
 	 * Let's keep it at reasonable size, leaving only last 100 entries.
 	 */
 	private function cutStats()
