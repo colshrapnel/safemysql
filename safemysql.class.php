@@ -69,12 +69,12 @@
 class SafeMySQL
 {
 
-	private $conn;
-	private $stats;
-	private $emode;
-	private $exname;
+	protected $conn;
+	protected $stats;
+	protected $emode;
+	protected $exname;
 
-	private $defaults = array(
+	protected $defaults = array(
 		'host'      => 'localhost',
 		'user'      => 'root',
 		'pass'      => '',
