@@ -454,13 +454,13 @@ class SafeMySQL
 	}
 
 	/**
-	 * private function which actually runs a query against Mysql server.
+	 * protected function which actually runs a query against Mysql server.
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
 	 * @return mysqli result resource or FALSE on error
 	 */
-	private function rawQuery($query)
+	protected function rawQuery($query)
 	{
 		$start = microtime(TRUE);
 		$res   = mysqli_query($this->conn, $query);
@@ -486,7 +486,7 @@ class SafeMySQL
 		return $res;
 	}
 
-	private function prepareQuery($args)
+	protected function prepareQuery($args)
 	{
 		$query = '';
 		$raw   = array_shift($args);
@@ -533,7 +533,7 @@ class SafeMySQL
 		return $query;
 	}
 
-	private function escapeInt($value)
+	protected function escapeInt($value)
 	{
 		if ($value === NULL)
 		{
@@ -551,7 +551,7 @@ class SafeMySQL
 		return $value;
 	}
 
-	private function escapeString($value)
+	protected function escapeString($value)
 	{
 		if ($value === NULL)
 		{
@@ -560,7 +560,7 @@ class SafeMySQL
 		return	"'".mysqli_real_escape_string($this->conn,$value)."'";
 	}
 
-	private function escapeIdent($value)
+	protected function escapeIdent($value)
 	{
 		if ($value)
 		{
@@ -570,7 +570,7 @@ class SafeMySQL
 		}
 	}
 
-	private function createIN($data)
+	protected function createIN($data)
 	{
 		if (!is_array($data))
 		{
@@ -590,7 +590,7 @@ class SafeMySQL
 		return $query;
 	}
 
-	private function createSET($data)
+	protected function createSET($data)
 	{
 		if (!is_array($data))
 		{
@@ -611,7 +611,7 @@ class SafeMySQL
 		return $query;
 	}
 
-	private function error($err)
+	protected function error($err)
 	{
 		$err  = __CLASS__.": ".$err;
 
@@ -624,7 +624,7 @@ class SafeMySQL
 		}
 	}
 
-	private function caller()
+	protected function caller()
 	{
 		$trace  = debug_backtrace();
 		$caller = '';
@@ -644,7 +644,7 @@ class SafeMySQL
 	 * On a long run we can eat up too much memory with mere statsistics
 	 * Let's keep it at reasonable size, leaving only last 100 entries.
 	 */
-	private function cutStats()
+	protected function cutStats()
 	{
 		if ( count($this->stats) > 100 )
 		{
