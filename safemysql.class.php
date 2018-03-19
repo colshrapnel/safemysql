@@ -221,7 +221,7 @@ class SafeMySQL
 	 * 
 	 * Examples:
 	 * $data = $db->getRow("SELECT * FROM table WHERE id=1");
-	 * $data = $db->getOne("SELECT * FROM table WHERE id=?i", $id);
+	 * $data = $db->getRow("SELECT * FROM table WHERE id=?i", $id);
 	 *
 	 * @param string $query - an SQL query with placeholders
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
