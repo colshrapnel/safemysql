@@ -247,7 +247,7 @@ class SafeMySQL
 	 *
 	 * @param string $query - an SQL query with placeholders
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
-	 * @return array|FALSE either enumerated array of first fields of all rows of resultset or FALSE if none found
+	 * @return array enumerated array of first fields of all rows of resultset or empty array if none found
 	 */
 	public function getCol()
 	{
