@@ -30,13 +30,18 @@ Yet, it is very easy to use. You need to learn only a few things:
  * getAll($query,$param1,$param2, ...) - returns 2-dimensional array, an array of rows
  * getInd($key,$query,$par1,$par2, ...) - returns an indexed 2-dimensional array, an array of rows
  * getIndCol($key,$query,$par1,$par2, ...) - returns 1-dimensional array, an indexed column, consists of key => value pairs
-4. For the whatever complex case always use the **parse()** method. And insert 
+4. For the whatever complex case always use the **parse()** method. After use ?p (parsed) placeholder in your SQL query.
+5. Also you can use named placeholders for example with type "integer" and name "some_name" it will be ?i:some_name.
 
 The rest is as usual - just create a regular SQL (with placeholders) and get a result:
 
 * ```$name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);```
 * ```$data = $db->getInd('id','SELECT * FROM ?n WHERE id IN (?a)','table', array(1,2));```
 * ```$data = $db->getAll("SELECT * FROM ?n WHERE mod=?s LIMIT ?i",$table,$mod,$limit);```
+
+or with named placeholder:
+
+* ```$data = $db->getAll("SELECT * FROM ?n WHERE mod=?s:some_name LIMIT ?i",array($table,'some_name'=>$mod,$limit));```
 
 The main feature of this class is a <i>type-hinted placeholders</i>. 
 And it's a really great step further from just ordinal placeholders used in prepared statements. 

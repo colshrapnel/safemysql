@@ -488,14 +488,34 @@ class SafeMySQL
 
 	protected function prepareQuery($args)
 	{
-		$query = '';
-		$raw   = array_shift($args);
-		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
+		$query  = '';
+		$raw    = array_shift($args);
+		$values = $args;
+
+		$namedPlaceholders = false;
+		if (preg_match('~(\?[nsiuap](?:\:[a-zA-Z0-9_]+))~u', $raw))
+		{
+			$regexp = '~(\?[nsiuap](?:\:[a-zA-Z0-9_]+)?)~u';
+			$namedPlaceholders = true;
+		} else {
+			$regexp = '~(\?[nsiuap])~u';
+		}
+
+		$array = preg_split('~(\?[nsiuap](?:\:[a-zA-Z0-9_]+)?)~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
+
+		if ($namedPlaceholders)
+		{
+			$args = $args[0];
+			$values = array_filter($args, function($key) {
+				return is_int($key);
+			}, ARRAY_FILTER_USE_KEY);
+		}
+
 		$anum  = count($args);
 		$pnum  = floor(count($array) / 2);
-		if ( $pnum != $anum )
+		if ( $pnum > $anum )
 		{
-			$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
+			$this->error("Number of values for placeholders ($anum) less than number of placeholders ($pnum) in [$raw]");
 		}
 
 		foreach ($array as $i => $part)
@@ -506,7 +526,19 @@ class SafeMySQL
 				continue;
 			}
 
-			$value = array_shift($args);
+			if ( !$namedPlaceholders || strlen($part) == 2 )
+			{
+				$value = array_shift($values);
+			} else {
+				$parameter = substr($part, 3);
+				if (!isset($args[$parameter]))
+				{
+					$this->error("Value for placeholder with name ($parameter) not present");
+				}
+				$value = $args[$parameter];
+				$part  = substr($part, 0, 2);
+			}
+
 			switch ($part)
 			{
 				case '?n':
