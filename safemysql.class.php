@@ -83,8 +83,8 @@ class SafeMySQL
 		'socket'    => NULL,
 		'pconnect'  => FALSE,
 		'charset'   => 'utf8',
-		'errmode'   => 'exception', //or 'error'
-		'exception' => 'Exception', //Exception class name
+		'errmode'   => 'exception', // or 'error'
+		'exception' => 'Exception', // Exception class name
 	);
 
 	const RESULT_ASSOC = MYSQLI_ASSOC;
@@ -97,20 +97,21 @@ class SafeMySQL
 		$this->emode  = $opt['errmode'];
 		$this->exname = $opt['exception'];
 
-		if (isset($opt['mysqli']))
+		if ( isset($opt['mysqli']) )
 		{
-			if ($opt['mysqli'] instanceof mysqli)
+			if ( $opt['mysqli'] instanceof mysqli )
 			{
 				$this->conn = $opt['mysqli'];
 				return;
 
-			} else {
-
+			}
+			else
+			{
 				$this->error("mysqli option must be valid instance of mysqli class");
 			}
 		}
 
-		if ($opt['pconnect'])
+		if ( $opt['pconnect'] )
 		{
 			$opt['host'] = "p:".$opt['host'];
 		}
@@ -205,10 +206,11 @@ class SafeMySQL
 	public function getOne()
 	{
 		$query = $this->prepareQuery(func_get_args());
-		if ($res = $this->rawQuery($query))
+		if ( $res = $this->rawQuery($query) )
 		{
 			$row = $this->fetch($res);
-			if (is_array($row)) {
+			if ( is_array($row) )
+			{
 				return reset($row);
 			}
 			$this->free($res);
@@ -230,7 +232,8 @@ class SafeMySQL
 	public function getRow()
 	{
 		$query = $this->prepareQuery(func_get_args());
-		if ($res = $this->rawQuery($query)) {
+		if ( $res = $this->rawQuery($query) )
+		{
 			$ret = $this->fetch($res);
 			$this->free($res);
 			return $ret;
@@ -255,7 +258,7 @@ class SafeMySQL
 		$query = $this->prepareQuery(func_get_args());
 		if ( $res = $this->rawQuery($query) )
 		{
-			while($row = $this->fetch($res))
+			while ( $row = $this->fetch($res) )
 			{
 				$ret[] = reset($row);
 			}
@@ -281,7 +284,7 @@ class SafeMySQL
 		$query = $this->prepareQuery(func_get_args());
 		if ( $res = $this->rawQuery($query) )
 		{
-			while($row = $this->fetch($res))
+			while ( $row = $this->fetch($res) )
 			{
 				$ret[] = $row;
 			}
@@ -311,7 +314,7 @@ class SafeMySQL
 		$ret = array();
 		if ( $res = $this->rawQuery($query) )
 		{
-			while($row = $this->fetch($res))
+			while ( $row = $this->fetch($res) )
 			{
 				$ret[$row[$index]] = $row;
 			}
@@ -340,7 +343,7 @@ class SafeMySQL
 		$ret = array();
 		if ( $res = $this->rawQuery($query) )
 		{
-			while($row = $this->fetch($res))
+			while ( $row = $this->fetch($res) )
 			{
 				$key = $row[$index];
 				unset($row[$index]);
@@ -422,7 +425,7 @@ class SafeMySQL
 	 */
 	public function filterArray($input,$allowed)
 	{
-		foreach(array_keys($input) as $key )
+		foreach ( array_keys($input) as $key )
 		{
 			if ( !in_array($key,$allowed) )
 			{
@@ -471,7 +474,7 @@ class SafeMySQL
 			'start' => $start,
 			'timer' => $timer,
 		);
-		if (!$res)
+		if ( !$res )
 		{
 			$error = mysqli_error($this->conn);
 			
@@ -498,7 +501,7 @@ class SafeMySQL
 			$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
 		}
 
-		foreach ($array as $i => $part)
+		foreach ( $array as $i => $part )
 		{
 			if ( ($i % 2) == 0 )
 			{
@@ -507,7 +510,7 @@ class SafeMySQL
 			}
 
 			$value = array_shift($args);
-			switch ($part)
+			switch ( $part )
 			{
 				case '?n':
 					$part = $this->escapeIdent($value);
@@ -535,16 +538,16 @@ class SafeMySQL
 
 	protected function escapeInt($value)
 	{
-		if ($value === NULL)
+		if ( $value === NULL )
 		{
 			return 'NULL';
 		}
-		if(!is_numeric($value))
+		if( !is_numeric($value) )
 		{
 			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
 			return FALSE;
 		}
-		if (is_float($value))
+		if ( is_float($value) )
 		{
 			$value = number_format($value, 0, '.', ''); // may lose precision on big numbers
 		} 
@@ -553,7 +556,7 @@ class SafeMySQL
 
 	protected function escapeString($value)
 	{
-		if ($value === NULL)
+		if ( $value === NULL )
 		{
 			return 'NULL';
 		}
@@ -562,27 +565,29 @@ class SafeMySQL
 
 	protected function escapeIdent($value)
 	{
-		if ($value)
+		if ( $value )
 		{
 			return "`".str_replace("`","``",$value)."`";
-		} else {
+		}
+		else
+		{
 			$this->error("Empty value for identifier (?n) placeholder");
 		}
 	}
 
 	protected function createIN($data)
 	{
-		if (!is_array($data))
+		if ( !is_array($data) )
 		{
 			$this->error("Value for IN (?a) placeholder should be array");
 			return;
 		}
-		if (!$data)
+		if ( !$data )
 		{
 			return 'NULL';
 		}
 		$query = $comma = '';
-		foreach ($data as $value)
+		foreach ( $data as $value )
 		{
 			$query .= $comma.$this->escapeString($value);
 			$comma  = ",";
@@ -592,18 +597,18 @@ class SafeMySQL
 
 	protected function createSET($data)
 	{
-		if (!is_array($data))
+		if ( !is_array($data) )
 		{
 			$this->error("SET (?u) placeholder expects array, ".gettype($data)." given");
 			return;
 		}
-		if (!$data)
+		if ( !$data )
 		{
 			$this->error("Empty array for SET (?u) placeholder");
 			return;
 		}
 		$query = $comma = '';
-		foreach ($data as $key => $value)
+		foreach ( $data as $key => $value )
 		{
 			$query .= $comma.$this->escapeIdent($key).'='.$this->escapeString($value);
 			$comma  = ",";
@@ -619,7 +624,9 @@ class SafeMySQL
 		{
 			$err .= ". Error initiated in ".$this->caller().", thrown";
 			trigger_error($err,E_USER_ERROR);
-		} else {
+		}
+		else
+		{
 			throw new $this->exname($err);
 		}
 	}
@@ -628,12 +635,14 @@ class SafeMySQL
 	{
 		$trace  = debug_backtrace();
 		$caller = '';
-		foreach ($trace as $t)
+		foreach ( $trace as $t )
 		{
 			if ( isset($t['class']) && $t['class'] == __CLASS__ )
 			{
 				$caller = $t['file']." on line ".$t['line'];
-			} else {
+			}
+			else
+			{
 				break;
 			}
 		}
@@ -641,7 +650,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * On a long run we can eat up too much memory with mere statsistics
+	 * On a long run we can eat up too much memory with more statsistics
 	 * Let's keep it at reasonable size, leaving only last 100 entries.
 	 */
 	protected function cutStats()
