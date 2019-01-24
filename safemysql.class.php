@@ -490,46 +490,63 @@ class SafeMySQL
 	{
 		$query = '';
 		$raw   = array_shift($args);
-		$array = preg_split('~(\?[nsiuap])~u',$raw,null,PREG_SPLIT_DELIM_CAPTURE);
-		$anum  = count($args);
-		$pnum  = floor(count($array) / 2);
-		if ( $pnum != $anum )
+		
+		$l = 0; $r = 0;
+		$raw_len = strlen($raw);
+		
+		
+		for (; ($r = strpos($raw, '?', $l)) !== FALSE and $r+1 < $raw_len; $l = $r+1)
+		{
+			$i = $r + 1;
+			$part = "";
+			
+			$placeholder = $raw{$i};
+			
+			switch ($placeholder)
+			{
+			case 'n':
+				$value = array_shift($args);
+				$part = $this->escapeIdent($value);
+				break;
+			case 's':
+				$value = array_shift($args);
+				$part = $this->escapeString($value);
+				break;
+			case 'i':
+				$value = array_shift($args);
+				$part = $this->escapeInt($value);
+				break;
+			case 'a':
+				$value = array_shift($args);
+				$part = $this->createIN($value);
+				break;
+			case 'u':
+				$value = array_shift($args);
+				$part = $this->createSET($value);
+				break;
+			case 'p':
+				$value = array_shift($args);
+				$part = $value;
+				break;
+			default:
+				$part = '?';
+				$placeholder = false;
+				break;
+			}
+			
+			$query .= substr($raw, $l, $r - $l) . $part;
+			if ($placeholder !== FALSE)
+				++$r;
+		}
+		
+		if ($l < $raw_len)
+			$query .= substr($raw, $l);
+		
+		if (count($args))
 		{
 			$this->error("Number of args ($anum) doesn't match number of placeholders ($pnum) in [$raw]");
 		}
-
-		foreach ($array as $i => $part)
-		{
-			if ( ($i % 2) == 0 )
-			{
-				$query .= $part;
-				continue;
-			}
-
-			$value = array_shift($args);
-			switch ($part)
-			{
-				case '?n':
-					$part = $this->escapeIdent($value);
-					break;
-				case '?s':
-					$part = $this->escapeString($value);
-					break;
-				case '?i':
-					$part = $this->escapeInt($value);
-					break;
-				case '?a':
-					$part = $this->createIN($value);
-					break;
-				case '?u':
-					$part = $this->createSET($value);
-					break;
-				case '?p':
-					$part = $value;
-					break;
-			}
-			$query .= $part;
-		}
+		
 		return $query;
 	}
 
