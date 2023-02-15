@@ -6,12 +6,6 @@
         "db",
         "mysql"
     ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url":  "https://github.com/iandreyev/safemysqlplus"
-        }
-    ]
     "require": {
         "colshrapnel/safemysql": "dev-master"
     },
