@@ -1,25 +1,19 @@
 {
-    "name": "colshrapnel/safemysql",
+    "name": "iandreyev/safemysqlplus",
     "description": "A real safe and convenient way to handle MySQL queries.",
     "type": "library",
     "keywords": [
         "db",
         "mysql"
     ],
-    "homepage": "https://github.com/colshrapnel/safemysql",
-    "license": "Apache-2.0",
-    "authors": [
+    "repositories": [
         {
-            "name": "Colonel Shrapnel",
-            "email": "col.shrapnel@gmail.com",
-            "role": "lead"
+            "type": "vcs",
+            "url":  "git@github.com:iandreyev/safemysqlplus.git"
         }
-    ],
-    "support": {
-        "issues": "https://github.com/colshrapnel/safemysql/issues"
-    },
+    ]
     "require": {
-        "php": ">=5.0.0"
+        "colshrapnel/safemysql": "dev-master"
     },
     "autoload": {
         "files": ["safemysql.class.php"]
