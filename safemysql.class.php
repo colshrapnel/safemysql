@@ -82,6 +82,7 @@ class SafeMySQL
 		'port'      => NULL,
 		'socket'    => NULL,
 		'pconnect'  => FALSE,
+		'options'   => array('MYSQLI_OPT_INT_AND_FLOAT_NATIVE' => true),
 		'charset'   => 'utf8',
 		'errmode'   => 'exception', //or 'error'
 		'exception' => 'Exception', //Exception class name
@@ -115,8 +116,21 @@ class SafeMySQL
 			$opt['host'] = "p:".$opt['host'];
 		}
 
-		@$this->conn = mysqli_connect($opt['host'], $opt['user'], $opt['pass'], $opt['db'], $opt['port'], $opt['socket']);
+		@$this->conn = mysqli_init();
 		if ( !$this->conn )
+		{
+			$this->error('mysqli_init failed');
+		}
+
+		if ( is_array($opt['options']) )
+		{
+			foreach($opt['options'] as $option => $value)
+			{
+				mysqli_options($this->conn, constant($option), $value) or $this->error("Setting ".$option." failed");
+			}
+		}
+
+		if ( !mysqli_real_connect($this->conn, $opt['host'], $opt['user'], $opt['pass'], $opt['db'], $opt['port'], $opt['socket']) )
 		{
 			$this->error(mysqli_connect_errno()." ".mysqli_connect_error());
 		}
