@@ -19,9 +19,14 @@
         "issues": "https://github.com/colshrapnel/safemysql/issues"
     },
     "require": {
-        "php": ">=5.0.0"
+        "php": "^7.4 || ^8.0"
     },
     "autoload": {
-        "files": ["safemysql.class.php"]
+        "files": [
+            "safemysql.class.php"
+        ]
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.3"
     }
 }
