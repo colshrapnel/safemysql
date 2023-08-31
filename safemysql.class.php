@@ -79,9 +79,9 @@ class SafeMySQL
 		'user'      => 'root',
 		'pass'      => '',
 		'db'        => 'test',
-		'port'      => NULL,
-		'socket'    => NULL,
-		'pconnect'  => FALSE,
+		'port'      => null,
+		'socket'    => null,
+		'pconnect'  => false,
 		'charset'   => 'utf8',
 		'errmode'   => 'exception', //or 'error'
 		'exception' => 'Exception', //Exception class name
@@ -213,7 +213,7 @@ class SafeMySQL
 			}
 			$this->free($res);
 		}
-		return FALSE;
+		return false;
 	}
 
 	/**
@@ -235,7 +235,7 @@ class SafeMySQL
 			$this->free($res);
 			return $ret;
 		}
-		return FALSE;
+		return false;
 	}
 
 	/**
@@ -398,10 +398,10 @@ class SafeMySQL
 	 * @param  string $default - optional variable to set if no match found. Default to false.
 	 * @return string|FALSE    - either sanitized value or FALSE
 	 */
-	public function whiteList($input,$allowed,$default=FALSE)
+	public function whiteList($input,$allowed,$default=false)
 	{
 		$found = array_search($input,$allowed);
-		return ($found === FALSE) ? $default : $allowed[$found];
+		return ($found === false) ? $default : $allowed[$found];
 	}
 
 	/**
@@ -462,9 +462,9 @@ class SafeMySQL
 	 */
 	protected function rawQuery($query)
 	{
-		$start = microtime(TRUE);
+		$start = microtime(true);
 		$res   = mysqli_query($this->conn, $query);
-		$timer = microtime(TRUE) - $start;
+		$timer = microtime(true) - $start;
 
 		$this->stats[] = array(
 			'query' => $query,
@@ -535,14 +535,14 @@ class SafeMySQL
 
 	protected function escapeInt($value)
 	{
-		if ($value === NULL)
+		if ($value === null)
 		{
 			return 'NULL';
 		}
 		if(!is_numeric($value))
 		{
 			$this->error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
-			return FALSE;
+			return false;
 		}
 		if (is_float($value))
 		{
@@ -553,7 +553,7 @@ class SafeMySQL
 
 	protected function escapeString($value)
 	{
-		if ($value === NULL)
+		if ($value === null)
 		{
 			return 'NULL';
 		}
