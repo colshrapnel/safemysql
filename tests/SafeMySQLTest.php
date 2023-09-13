@@ -2,6 +2,7 @@
 include 'vendor/autoload.php';
 
 use PHPUnit\Framework\TestCase;
+use Impeck\SafeMySQL;
 
 class SafeMySQLTest extends TestCase
 {

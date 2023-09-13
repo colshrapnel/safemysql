@@ -65,11 +65,13 @@ declare(strict_types=1);
  * 
  */
 
+namespace Impeck;
+
 class SafeMySQL
 {
 
 	/**
-	 * @var mysqli|null The mysqli connection.
+	 * @var \mysqli|null The mysqli connection.
 	 */
 	protected $conn;
 
@@ -137,7 +139,7 @@ class SafeMySQL
 		$this->exname = $opt['exception'];
 
 		if (isset($opt['mysqli'])) {
-			if ($opt['mysqli'] instanceof mysqli) {
+			if ($opt['mysqli'] instanceof \mysqli) {
 				$this->conn = $opt['mysqli'];
 				return;
 			} else {
@@ -176,7 +178,7 @@ class SafeMySQL
 	 *
 	 * @example $result = $db->query("DELETE FROM table WHERE id=?i", $id);
 	 */
-	public function query(string $query, ...$args): mysqli|bool
+	public function query(string $query, ...$args): \mysqli|bool
 	{
 		return $this->rawQuery($this->prepareQuery($query, ...$args));
 	}
@@ -184,11 +186,11 @@ class SafeMySQL
 	/**
 	 * Fetch a row from a result set as an associative array or a numeric array.
 	 *
-	 * @param mysqli_result|null $result The result set from which to fetch the row.
+	 * @param \mysqli_result|null $result The result set from which to fetch the row.
 	 * @param int $mode The type of array to return (RESULT_ASSOC for associative array, or RESULT_NUM for numeric array). Defaults to RESULT_ASSOC.
 	 * @return array|null The fetched row as an associative array or a numeric array, or null if no more rows are available.
 	 */
-	public function fetch(mysqli_result|null $result, int $mode = self::RESULT_ASSOC): array|null
+	public function fetch(\mysqli_result|null $result, int $mode = self::RESULT_ASSOC): array|null
 	{
 		return $result === null ? null : mysqli_fetch_array($result, $mode);
 	}
@@ -216,10 +218,10 @@ class SafeMySQL
 	/**
 	 * Returns the number of rows in the resultset.
 	 * 
-	 * @param mysqli_result $result - The mysqli result object.
+	 * @param \mysqli_result $result - The mysqli result object.
 	 * @return int - The number of rows in the resultset.
 	 */
-	public function numRows(mysqli_result $result): int
+	public function numRows(\mysqli_result $result): int
 	{
 		return mysqli_num_rows($result);
 	}
@@ -517,9 +519,9 @@ class SafeMySQL
 	 * It also logs some statistics like profiling information and error messages.
 	 *
 	 * @param string $query - A regular SQL query.
-	 * @return mysqli_result|bool A mysqli_result object on success, or bool on error.
+	 * @return \mysqli_result|bool A mysqli_result object on success, or bool on error.
 	 */
-	protected function rawQuery(string $query): mysqli_result|bool
+	protected function rawQuery(string $query): \mysqli_result|bool
 	{
 		$start = microtime(TRUE);
 		$res   = mysqli_query($this->conn, $query);

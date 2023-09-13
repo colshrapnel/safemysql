@@ -1,30 +1,34 @@
 {
-    "name": "colshrapnel/safemysql",
-    "description": "A real safe and convenient way to handle MySQL queries.",
+    "name": "impeck/safemysql",
+    "description": "PHP class designed for secure and efficient MySQL query handling",
     "type": "library",
+    "license": "Apache-2.0",
     "keywords": [
         "db",
-        "mysql"
+        "mysql",
+        "safemysql",
+        "safe",
+        "secure",
+        "query",
+        "handling"
     ],
-    "homepage": "https://github.com/colshrapnel/safemysql",
-    "license": "Apache-2.0",
+    "autoload": {
+        "psr-4": {
+            "Impeck\\": "src/"
+        }
+    },
     "authors": [
         {
             "name": "Colonel Shrapnel",
-            "email": "col.shrapnel@gmail.com",
-            "role": "lead"
+            "email": "col.shrapnel@gmail.com"
+        },
+        {
+            "name": "Impeck",
+            "email": "impeck@ya.ru"
         }
     ],
-    "support": {
-        "issues": "https://github.com/colshrapnel/safemysql/issues"
-    },
     "require": {
-        "php": "^7.4 || ^8.0"
-    },
-    "autoload": {
-        "files": [
-            "safemysql.class.php"
-        ]
+        "php": "^7.4||^8.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.3"
