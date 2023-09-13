@@ -1,6 +1,12 @@
 # SafeMySQL
 
-SafeMySQL is a PHP class designed for secure and efficient MySQL query handling. It stands out for several key features:
+English | [Русский](https://github.com/Impeck/safemysql/blob/master/README.ru.md)
+
+SafeMySQL is a PHP class designed for secure and efficient MySQL query handling.
+
+Forked from [colshrapnel/safemysql](https://github.com/colshrapnel/safemysql).
+
+It stands out for several key features:
 
 - **Safety:** All dynamic query parts are incorporated into the query using placeholders, enhancing security.
 - **Convenience:** It streamlines application code, reducing redundancy, and following the DRY (Don't Repeat Yourself) principle.
