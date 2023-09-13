@@ -27,6 +27,10 @@
             "email": "impeck@ya.ru"
         }
     ],
+    "homepage": "https://github.com/Impeck/safemysql",
+    "support": {
+        "issues": "https://github.com/Impeck/safemysql/issues"
+    },
     "require": {
         "php": "^7.4||^8.0"
     },
