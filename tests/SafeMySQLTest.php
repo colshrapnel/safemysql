@@ -12,8 +12,8 @@ class SafeMySQLTest extends TestCase
     {
         $opts = [
             'user' => 'root',
-            'pass' => '',
-            'db' => 'test_users'
+            'pass' => 'root',
+            'db' => 'db_test'
         ];
 
         $this->db = new SafeMySQL($opts);
