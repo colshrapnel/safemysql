@@ -26,12 +26,12 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pcov
+          extensions: pcov, pdo_mysql
           coverage: pcov
      # Install MySQL     
       - uses: mirromutth/mysql-action@v1.1
         with:
-          mysql root password: 'root' # Required if "mysql user" is empty, default is empty. The root superuser password
+          mysql root password: '' # Required if "mysql user" is empty, default is empty. The root superuser password
           mysql user: 'user' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
           mysql password: 'user' # Required if "mysql user" exists. The password for the "mysql user"
       - name: Install dependencies

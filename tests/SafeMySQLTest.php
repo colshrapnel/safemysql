@@ -8,8 +8,8 @@ class SafeMySQLTest extends TestCase
     protected static $opts = [
         'host' => 'localhost',
         'user' => 'root',
-        'pass' => 'root',
-        'db' => 'test'
+        'pass' => '',
+        'db' => 'savemysql'
     ];
     protected $db;
 
