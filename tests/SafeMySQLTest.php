@@ -1,22 +1,39 @@
 <?php
-include 'vendor/autoload.php';
 
 use PHPUnit\Framework\TestCase;
 use Impeck\SafeMySQL;
 
 class SafeMySQLTest extends TestCase
 {
+    protected static $opts = [
+        'host' => 'localhost',
+        'user' => 'root',
+        'pass' => '',
+        'db' => 'test'
+    ];
     protected $db;
+
+    public static function setUpBeforeClass(): void
+    {
+        $conn = @new mysqli(self::$opts['host'], self::$opts['user'], self::$opts['password']);
+
+        if ($conn->connect_error) {
+            die("Connection failed: " . $conn->connect_error);
+        }
+
+        $sql = "CREATE SCHEMA IF NOT EXISTS " . self::$opts['db'];
+        if ($conn->query($sql) === TRUE) {
+            echo "Database created successfully";
+        } else {
+            echo "Error creating database: " . $conn->error;
+        }
+
+        $conn->close();
+    }
 
     public function setUp(): void
     {
-        $opts = [
-            'user' => 'root',
-            'pass' => 'root',
-            'db' => 'db_test'
-        ];
-
-        $this->db = new SafeMySQL($opts);
+        $this->db = new SafeMySQL(self::$opts);
 
         $createTableQuery = '
             CREATE TABLE IF NOT EXISTS users (
@@ -220,7 +237,6 @@ class SafeMySQLTest extends TestCase
 
         $this->assertEquals('SELECT id FROM users WHERE id=1', $this->db->lastQuery());
     }
-
 
     public function testdropUsersTable()
     {

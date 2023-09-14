@@ -174,7 +174,7 @@ class SafeMySQL
 	 * @param string $query - An SQL query with placeholders.
 	 * @param mixed  ...$args - Unlimited number of arguments to match placeholders in the query.
 	 *
-	 * @return mysqli|bool The result of the query or false if an error occurred.
+	 * @return \mysqli|bool The result of the query or false if an error occurred.
 	 *
 	 * @example $result = $db->query("DELETE FROM table WHERE id=?i", $id);
 	 */
@@ -726,8 +726,6 @@ class SafeMySQL
 	 * Protected function to handle errors in the query builder.
 	 *
 	 * @param string $err The error message to be handled.
-	 *
-	 * @throws QueryBuilderException If the error handling mode is 'exception'.
 	 */
 	protected function error(string $err): void
 	{

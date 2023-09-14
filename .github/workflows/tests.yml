@@ -11,15 +11,15 @@ jobs:
       matrix:
         php: ['8.0', '8.1', '8.2', '8.3']
         stability: [ prefer-lowest, prefer-stable ]
+    # Service container Mysql mysql
     services:
-    # mysql-service Label used to access the service container
-      mysql-service:
+      # Label used to access the service container
+      mysql:
         # Docker Hub image (also with version)
-        image: mysql:5.7
+        image: mysql:latest
         env:
-          ## Accessing to Github secrets, where you can store your configuration
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: db_test
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE:  db_test
         ## map the "external" 33306 port with the "internal" 3306
         ports:
           - 33306:3306
@@ -51,4 +51,4 @@ jobs:
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress --no-suggest
 
       - name: Execute tests
-        run: vendor/bin/phpunit tests
+        run: vendor/bin/phpunit --testdox
