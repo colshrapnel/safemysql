@@ -22,11 +22,8 @@ class SafeMySQLTest extends TestCase
         }
 
         $sql = "CREATE SCHEMA IF NOT EXISTS " . self::$opts['db'];
-        if ($conn->query($sql) === TRUE) {
-            echo "Database created successfully";
-        } else {
-            echo "Error creating database: " . $conn->error;
-        }
+
+        $conn->query($sql);
 
         $conn->close();
     }
