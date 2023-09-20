@@ -26,17 +26,18 @@ jobs:
           path: ~/.composer/cache/files
           key: dependencies-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
 
+     # Install MySQL
+      - uses: shogo82148/actions-setup-mysql@v1
+        with:
+          mysql-version: "8.0"
+      - run: mysql -uroot -e 'SELECT version()'
+
       # use PHP of specific version
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: mysql, pdo, pdo_mysql
           coverage: pcov
-     # Install MySQL     
-      - uses: shogo82148/actions-setup-mysql@v1
-        with:
-          mysql-version: "8.0"
-      - run: mysql -uroot -e 'SELECT version()'
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress --no-suggest
