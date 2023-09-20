@@ -15,10 +15,10 @@ jobs:
     
     steps:
       # basically git clone
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Shutdown Ubuntu MySQL (SUDO)
-        run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
+        run: sudo service mysql stop && sudo service mysql status
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -33,11 +33,11 @@ jobs:
           extensions: mysql, pdo, pdo_mysql
           coverage: pcov
      # Install MySQL     
-      - uses: mirromutth/mysql-action@v1.1
+      - uses: shogo82148/actions-setup-mysql@v1
         with:
-          mysql root password: '' # Required if "mysql user" is empty, default is empty. The root superuser password
-          mysql user: 'user' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
-          mysql password: 'user' # Required if "mysql user" exists. The password for the "mysql user"
+          mysql-version: "8.0"
+      - run: mysql -uroot -e 'SELECT version()'
+
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress --no-suggest
 
