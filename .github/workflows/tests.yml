@@ -31,6 +31,7 @@ jobs:
         with:
           mysql-version: "8.0"
       - run: mysql -uroot -e 'SELECT version()'
+      - run: mysql -uroot -e 'CREATE SCHEMA IF NOT EXISTS savemysql'
 
       # use PHP of specific version
       - uses: shivammathur/setup-php@v2

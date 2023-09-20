@@ -6,7 +6,7 @@ use Impeck\SafeMySQL;
 class SafeMySQLTest extends TestCase
 {
     protected static $opts = [
-        'host' => 'localhost',
+        'host' => '127.0.0.1',
         'user' => 'root',
         'pass' => '',
         'db' => 'savemysql'
