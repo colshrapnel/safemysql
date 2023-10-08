@@ -1,1 +1,6 @@
 /vendor/
+.DS_Store
+.vscode
+.phpunit.result.cache
+.phpunit.cache/test-results
+composer.lock

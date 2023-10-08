@@ -1,0 +1,47 @@
+# .github/workflows/tests.yaml
+name: Tests
+
+on: ["push", "pull_request"]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.1', '8.2', '8.3']
+        stability: [ prefer-lowest, prefer-stable ]
+    name: PHP ${{ matrix.php }} - ${{ matrix.stability }} tests
+    
+    steps:
+      # basically git clone
+      - uses: actions/checkout@v4
+
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.composer/cache/files
+          key: dependencies-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
+
+     # Install MySQL
+      - uses: shogo82148/actions-setup-mysql@v1
+        with:
+          mysql-version: "8.0"
+      - run: mysql -uroot -e 'SELECT version()'
+      - run: mysql -uroot -e 'CREATE SCHEMA IF NOT EXISTS savemysql'
+
+      # use PHP of specific version
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysql, pdo, pdo_mysql
+          coverage: pcov
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress --no-suggest
+
+      - name: Execute tests
+        run: vendor/bin/phpunit --testdox
