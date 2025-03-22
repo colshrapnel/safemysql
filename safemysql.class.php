@@ -82,7 +82,7 @@ class SafeMySQL
 		'port'      => NULL,
 		'socket'    => NULL,
 		'pconnect'  => FALSE,
-		'charset'   => 'utf8',
+		'charset'   => 'utf8mb4',
 		'errmode'   => 'exception', //or 'error'
 		'exception' => 'Exception', //Exception class name
 	);
