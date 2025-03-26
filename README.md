@@ -9,8 +9,8 @@ This class is distinguished by three main features
 - Unlike standard libraries, it is using **type-hinted placeholders**, for the **everything** that may be put into the query
 - Unlike standard libraries, it requires no repetitive binding, fetching and such,
 thanks to set of helper methods to get the desired result right out of the query
-- Unlike standard libraries, it can parse placeholders not in the whole query only, but in the arbitary query part, 
-thanks to the indispensabe **parse()** method, making complex queries as easy and safe as regular ones.
+- Unlike standard libraries, it can parse placeholders not in the whole query only, but in the arbitrary query part, 
+thanks to the indispensable **parse()** method, making complex queries as easy and safe as regular ones.
 
 Yet, it is very easy to use. You need to learn only a few things:
 
@@ -19,7 +19,7 @@ Yet, it is very easy to use. You need to learn only a few things:
  * ?s ("string")  - strings (also ```DATE```, ```FLOAT``` and ```DECIMAL```)
  * ?i ("integer") - the name says it all 
  * ?n ("name")    - identifiers (table and field names) 
- * ?a ("array")   - complex placeholder for ```IN()``` operator  (substituted with string of 'a','b','c' format, without parentesis)
+ * ?a ("array")   - complex placeholder for ```IN()``` operator  (substituted with string of 'a','b','c' format, without parenthesis)
  * ?u ("update")  - complex placeholder for ```SET``` operator (substituted with string of `field`='value',`field`='value' format)
  * ?p ("parsed")  - special type placeholder, for inserting already parsed statements without any processing, to avoid double parsing.
 3. To get data right out of the query there are helper methods for the most used:

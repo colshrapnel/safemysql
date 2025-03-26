@@ -7,7 +7,7 @@
  * 
  * Key features
  * - set of helper functions to get the desired result right out of query, like in PEAR::DB
- * - conditional query building using parse() method to build queries of whatever comlexity, 
+ * - conditional query building using parse() method to build queries of whatever complexity, 
  *   while keeping extra safety of placeholders
  * - type-hinted placeholders
  * 
@@ -21,7 +21,7 @@
  * ?s ("string")  - strings (also DATE, FLOAT and DECIMAL)
  * ?i ("integer") - the name says it all 
  * ?n ("name")    - identifiers (table and field names) 
- * ?a ("array")   - complex placeholder for IN() operator  (substituted with string of 'a','b','c' format, without parentesis)
+ * ?a ("array")   - complex placeholder for IN() operator (substituted with string of 'a','b','c' format, without parenthesis)
  * ?u ("update")  - complex placeholder for SET operator (substituted with string of `field`='value',`field`='value' format)
  * and
  * ?p ("parsed") - special type placeholder, for inserting already parsed statements without any processing, to avoid double parsing.
@@ -122,7 +122,7 @@ class SafeMySQL
 		}
 
 		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
-		unset($opt); // I am paranoid
+		unset($opt); // I am a paranoid
 	}
 
 	/**
@@ -143,7 +143,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to fetch single row. 
 	 * 
-	 * @param resource $result - myqli result
+	 * @param resource $result - mysqli result
 	 * @param int $mode - optional fetch mode, RESULT_ASSOC|RESULT_NUM, default RESULT_ASSOC
 	 * @return array|FALSE whatever mysqli_fetch_array returns
 	 */
@@ -175,7 +175,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to get number of rows in the resultset. 
 	 * 
-	 * @param resource $result - myqli result
+	 * @param resource $result - mysqli result
 	 * @return int whatever mysqli_num_rows returns
 	 */
 	public function numRows($result)
@@ -393,7 +393,7 @@ class SafeMySQL
 	 * $sql  = "SELECT * FROM table ORDER BY ?p ?p LIMIT ?i,?i"
 	 * $data = $db->getArr($sql, $order, $dir, $start, $per_page);
 	 * 
-	 * @param string $iinput   - field name to test
+	 * @param  string $input   - field name to test
 	 * @param  array  $allowed - an array with allowed variants
 	 * @param  string $default - optional variable to set if no match found. Default to false.
 	 * @return string|FALSE    - either sanitized value or FALSE
@@ -641,7 +641,7 @@ class SafeMySQL
 	}
 
 	/**
-	 * On a long run we can eat up too much memory with mere statsistics
+	 * On a long run we can eat up too much memory with mere statistics
 	 * Let's keep it at reasonable size, leaving only last 100 entries.
 	 */
 	protected function cutStats()
