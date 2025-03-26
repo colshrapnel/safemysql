@@ -73,6 +73,7 @@ class SafeMySQL
 	protected $stats;
 	protected $emode;
 	protected $exname;
+	protected $allow_mquery;
 
 	protected $defaults = array(
 		'host'      => 'localhost',
@@ -433,6 +434,16 @@ class SafeMySQL
 	}
 
 	/**
+	 * Allow/disallow potentially unsecurity multiquery. 
+	 * 
+	 * @param bool $allow
+	 */
+	public function setMultiQuery($allow)
+	{
+		$this->allow_mquery = $allow;
+	}
+
+	/**
 	 * Function to get last executed query. 
 	 * 
 	 * @return string|NULL either last executed query or NULL if were none
@@ -463,7 +474,7 @@ class SafeMySQL
 	protected function rawQuery($query)
 	{
 		$start = microtime(TRUE);
-		$res   = mysqli_query($this->conn, $query);
+		$res   = $this->allow_mquery ? mysqli_multi_query($this->conn, $query) : mysqli_query($this->conn, $query);
 		$timer = microtime(TRUE) - $start;
 
 		$this->stats[] = array(
