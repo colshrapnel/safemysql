@@ -133,7 +133,7 @@ class SafeMySQL
 	 *
 	 * @param string $query - an SQL query with placeholders
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
-	 * @return resource|FALSE whatever mysqli_query returns
+	 * @return mysql_result|true whatever mysqli_query returns
 	 */
 	public function query()
 	{	
@@ -145,7 +145,7 @@ class SafeMySQL
 	 * 
 	 * @param resource $result - myqli result
 	 * @param int $mode - optional fetch mode, RESULT_ASSOC|RESULT_NUM, default RESULT_ASSOC
-	 * @return array|FALSE whatever mysqli_fetch_array returns
+	 * @return array|null whatever mysqli_fetch_array returns
 	 */
 	public function fetch($result,$mode=self::RESULT_ASSOC)
 	{
@@ -204,14 +204,11 @@ class SafeMySQL
 	 */
 	public function getOne()
 	{
-		$query = $this->prepareQuery(func_get_args());
-		if ($res = $this->rawQuery($query))
-		{
-			$row = $this->fetch($res);
-			if (is_array($row)) {
-				return reset($row);
-			}
-			$this->free($res);
+		$res = $this->rawQuery($this->prepareQuery(func_get_args()));
+		$row = $this->fetch($res);
+		$this->free($res);
+		if (is_array($row)) {
+			return reset($row);
 		}
 		return FALSE;
 	}
@@ -225,17 +222,14 @@ class SafeMySQL
 	 *
 	 * @param string $query - an SQL query with placeholders
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
-	 * @return array|FALSE either associative array contains first row of resultset or FALSE if none found
+	 * @return array|null either associative array contains first row of resultset or NULL if none found
 	 */
 	public function getRow()
 	{
-		$query = $this->prepareQuery(func_get_args());
-		if ($res = $this->rawQuery($query)) {
-			$ret = $this->fetch($res);
-			$this->free($res);
-			return $ret;
-		}
-		return FALSE;
+		$res = $this->rawQuery($this->prepareQuery(func_get_args()));
+		$ret = $this->fetch($res);
+		$this->free($res);
+		return $ret;
 	}
 
 	/**
@@ -252,15 +246,12 @@ class SafeMySQL
 	public function getCol()
 	{
 		$ret   = array();
-		$query = $this->prepareQuery(func_get_args());
-		if ( $res = $this->rawQuery($query) )
+		$res = $this->rawQuery($this->prepareQuery(func_get_args()));
+		while ($row = $this->fetch($res))
 		{
-			while($row = $this->fetch($res))
-			{
-				$ret[] = reset($row);
-			}
-			$this->free($res);
+			$ret[] = reset($row);
 		}
+		$this->free($res);
 		return $ret;
 	}
 
@@ -277,16 +268,13 @@ class SafeMySQL
 	 */
 	public function getAll()
 	{
-		$ret   = array();
-		$query = $this->prepareQuery(func_get_args());
-		if ( $res = $this->rawQuery($query) )
+		$ret = array();
+		$res = $this->rawQuery($this->prepareQuery(func_get_args()));
+		while ($row = $this->fetch($res))
 		{
-			while($row = $this->fetch($res))
-			{
-				$ret[] = $row;
-			}
-			$this->free($res);
+			$ret[] = $row;
 		}
+		$this->free($res);
 		return $ret;
 	}
 
@@ -306,17 +294,14 @@ class SafeMySQL
 	{
 		$args  = func_get_args();
 		$index = array_shift($args);
-		$query = $this->prepareQuery($args);
 
 		$ret = array();
-		if ( $res = $this->rawQuery($query) )
+		$res = $this->rawQuery($this->prepareQuery($args));
+		while ($row = $this->fetch($res))
 		{
-			while($row = $this->fetch($res))
-			{
-				$ret[$row[$index]] = $row;
-			}
-			$this->free($res);
+			$ret[$row[$index]] = $row;
 		}
+		$this->free($res);
 		return $ret;
 	}
 
@@ -335,19 +320,16 @@ class SafeMySQL
 	{
 		$args  = func_get_args();
 		$index = array_shift($args);
-		$query = $this->prepareQuery($args);
 
 		$ret = array();
-		if ( $res = $this->rawQuery($query) )
+		$res = $this->rawQuery($this->prepareQuery($args));
+		while ($row = $this->fetch($res))
 		{
-			while($row = $this->fetch($res))
-			{
-				$key = $row[$index];
-				unset($row[$index]);
-				$ret[$key] = reset($row);
-			}
-			$this->free($res);
+			$key = $row[$index];
+			unset($row[$index]);
+			$ret[$key] = reset($row);
 		}
+		$this->free($res);
 		return $ret;
 	}
 
@@ -458,7 +440,7 @@ class SafeMySQL
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
-	 * @return mysqli result resource or FALSE on error
+	 * @return mysqli_result|true result or true if query not provides a result
 	 */
 	protected function rawQuery($query)
 	{
