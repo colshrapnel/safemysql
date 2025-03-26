@@ -605,7 +605,9 @@ class SafeMySQL
 		$query = $comma = '';
 		foreach ($data as $key => $value)
 		{
-			$query .= $comma.$this->escapeIdent($key).'='.$this->escapeString($value);
+			if ($key[0] == '#') $key = substr($key, 1);
+			else $value = $this->escapeString($value);
+			$query .= $comma.$this->escapeIdent($key).'='.$value;
 			$comma  = ",";
 		}
 		return $query;
