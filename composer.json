@@ -1,5 +1,5 @@
 {
-    "name": "colshrapnel/safemysql",
+    "name": "wyssenreichenbach/safemysql",
     "description": "A real safe and convenient way to handle MySQL queries.",
     "type": "library",
     "keywords": [
