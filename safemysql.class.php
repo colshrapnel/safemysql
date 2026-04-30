@@ -133,7 +133,7 @@ class SafeMySQL
 	 *
 	 * @param string $query - an SQL query with placeholders
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
-	 * @return resource|FALSE whatever mysqli_query returns
+	 * @return mysqli_result|FALSE whatever mysqli_query returns
 	 */
 	public function query()
 	{	
@@ -143,7 +143,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to fetch single row. 
 	 * 
-	 * @param resource $result - myqli result
+	 * @param mysqli_result $result - myqli result
 	 * @param int $mode - optional fetch mode, RESULT_ASSOC|RESULT_NUM, default RESULT_ASSOC
 	 * @return array|FALSE whatever mysqli_fetch_array returns
 	 */
@@ -175,7 +175,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to get number of rows in the resultset. 
 	 * 
-	 * @param resource $result - myqli result
+	 * @param mysqli_result $result - myqli result
 	 * @return int whatever mysqli_num_rows returns
 	 */
 	public function numRows($result)
@@ -458,7 +458,7 @@ class SafeMySQL
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
-	 * @return mysqli result resource or FALSE on error
+	 * @return mysqli_result result resource or FALSE on error
 	 */
 	protected function rawQuery($query)
 	{
