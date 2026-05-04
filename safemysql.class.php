@@ -457,9 +457,9 @@ class SafeMySQL
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
-	 * @return mysqli_result|false result resource or FALSE on error
+	 * @return mysqli_result|bool result resource or FALSE on error
 	 */
-	protected function rawQuery(string $query):mysqli_result|FALSE
+	protected function rawQuery(string $query):mysqli_result|bool
 	{
 		$start = microtime(TRUE);
 		$res   = mysqli_query($this->conn, $query);
@@ -550,7 +550,7 @@ class SafeMySQL
 		return $value;
 	}
 
-	protected function escapeString(null|string $value)
+	protected function escapeString(?string $value)
 	{
 		if ($value === NULL)
 		{
