@@ -485,7 +485,7 @@ class SafeMySQL
 		return $res;
 	}
 
-	protected function prepareQuery(mixed ...$args)
+	protected function prepareQuery(array $args)
 	{
 		$query = '';
 		$raw   = array_shift($args);
