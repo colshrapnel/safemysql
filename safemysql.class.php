@@ -69,12 +69,12 @@
 class SafeMySQL
 {
 
-	protected $conn;
-	protected $stats;
-	protected $emode;
-	protected $exname;
+	protected mysqli|false $conn;
+	protected array $stats;
+	protected mixed $emode;
+	protected mixed $exname;
 
-	protected $defaults = array(
+	protected array $defaults = array(
 		'host'      => 'localhost',
 		'user'      => 'root',
 		'pass'      => '',
@@ -90,7 +90,7 @@ class SafeMySQL
 	const RESULT_ASSOC = MYSQLI_ASSOC;
 	const RESULT_NUM   = MYSQLI_NUM;
 
-	function __construct($opt = array())
+	function __construct(array $opt = array())
 	{
 		$opt = array_merge($this->defaults,$opt);
 
@@ -133,9 +133,9 @@ class SafeMySQL
 	 *
 	 * @param string $query - an SQL query with placeholders
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
-	 * @return resource|FALSE whatever mysqli_query returns
+	 * @return mysqli_result|FALSE whatever mysqli_query returns
 	 */
-	public function query()
+	public function query(string $query, mixed ...$arg)
 	{	
 		return $this->rawQuery($this->prepareQuery(func_get_args()));
 	}
@@ -143,7 +143,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to fetch single row. 
 	 * 
-	 * @param resource $result - myqli result
+	 * @param mysqli_result $result - myqli result
 	 * @param int $mode - optional fetch mode, RESULT_ASSOC|RESULT_NUM, default RESULT_ASSOC
 	 * @return array|FALSE whatever mysqli_fetch_array returns
 	 */
@@ -175,7 +175,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to get number of rows in the resultset. 
 	 * 
-	 * @param resource $result - myqli result
+	 * @param mysqli_result $result - myqli result
 	 * @return int whatever mysqli_num_rows returns
 	 */
 	public function numRows($result)
@@ -186,7 +186,7 @@ class SafeMySQL
 	/**
 	 * Conventional function to free the resultset. 
 	 */
-	public function free($result)
+	public function free(mysqli_result $result)
 	{
 		mysqli_free_result($result);
 	}
@@ -202,7 +202,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
 	 * @return string|FALSE either first column of the first row of resultset or FALSE if none found
 	 */
-	public function getOne()
+	public function getOne(string $query, mixed ...$arg)
 	{
 		$query = $this->prepareQuery(func_get_args());
 		if ($res = $this->rawQuery($query))
@@ -227,7 +227,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
 	 * @return array|FALSE either associative array contains first row of resultset or FALSE if none found
 	 */
-	public function getRow()
+	public function getRow(string $query, mixed ...$arg)
 	{
 		$query = $this->prepareQuery(func_get_args());
 		if ($res = $this->rawQuery($query)) {
@@ -249,7 +249,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
 	 * @return array enumerated array of first fields of all rows of resultset or empty array if none found
 	 */
-	public function getCol()
+	public function getCol(string $query, mixed ...$arg)
 	{
 		$ret   = array();
 		$query = $this->prepareQuery(func_get_args());
@@ -275,7 +275,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
 	 * @return array enumerated 2d array contains the resultset. Empty if no rows found. 
 	 */
-	public function getAll()
+	public function getAll(string $query, mixed ...$arg)
 	{
 		$ret   = array();
 		$query = $this->prepareQuery(func_get_args());
@@ -302,7 +302,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
 	 * @return array - associative 2d array contains the resultset. Empty if no rows found. 
 	 */
-	public function getInd()
+	public function getInd(string $index, string $query, mixed ...$arg)
 	{
 		$args  = func_get_args();
 		$index = array_shift($args);
@@ -331,7 +331,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the query
 	 * @return array - associative array contains key=value pairs out of resultset. Empty if no rows found. 
 	 */
-	public function getIndCol()
+	public function getIndCol(string $index, string $query, mixed ...$arg)
 	{
 		$args  = func_get_args();
 		$index = array_shift($args);
@@ -373,7 +373,7 @@ class SafeMySQL
 	 * @param mixed  $arg,... unlimited number of arguments to match placeholders in the expression
 	 * @return string - initial expression with placeholders substituted with data. 
 	 */
-	public function parse()
+	public function parse(string $query, mixed ...$arg)
 	{
 		return $this->prepareQuery(func_get_args());
 	}
@@ -393,12 +393,12 @@ class SafeMySQL
 	 * $sql  = "SELECT * FROM table ORDER BY ?p ?p LIMIT ?i,?i"
 	 * $data = $db->getArr($sql, $order, $dir, $start, $per_page);
 	 * 
-	 * @param string $iinput   - field name to test
+	 * @param string $input   - field name to test
 	 * @param  array  $allowed - an array with allowed variants
 	 * @param  string $default - optional variable to set if no match found. Default to false.
 	 * @return string|FALSE    - either sanitized value or FALSE
 	 */
-	public function whiteList($input,$allowed,$default=FALSE)
+	public function whiteList(string $input,array $allowed,$default=FALSE)
 	{
 		$found = array_search($input,$allowed);
 		return ($found === FALSE) ? $default : $allowed[$found];
@@ -418,9 +418,8 @@ class SafeMySQL
 	 * 
 	 * @param  array $input   - source array
 	 * @param  array $allowed - an array with allowed field names
-	 * @return array filtered out source array
 	 */
-	public function filterArray($input,$allowed)
+	public function filterArray(array $input, array $allowed)
 	{
 		foreach(array_keys($input) as $key )
 		{
@@ -458,9 +457,9 @@ class SafeMySQL
 	 * also logs some stats like profiling info and error message
 	 * 
 	 * @param string $query - a regular SQL query
-	 * @return mysqli result resource or FALSE on error
+	 * @return mysqli_result|bool result resource or FALSE on error
 	 */
-	protected function rawQuery($query)
+	protected function rawQuery(string $query):mysqli_result|bool
 	{
 		$start = microtime(TRUE);
 		$res   = mysqli_query($this->conn, $query);
@@ -486,7 +485,7 @@ class SafeMySQL
 		return $res;
 	}
 
-	protected function prepareQuery($args)
+	protected function prepareQuery(array $args)
 	{
 		$query = '';
 		$raw   = array_shift($args);
@@ -533,7 +532,7 @@ class SafeMySQL
 		return $query;
 	}
 
-	protected function escapeInt($value)
+	protected function escapeInt(null|int|float $value)
 	{
 		if ($value === NULL)
 		{
@@ -551,7 +550,7 @@ class SafeMySQL
 		return $value;
 	}
 
-	protected function escapeString($value)
+	protected function escapeString(?string $value)
 	{
 		if ($value === NULL)
 		{
@@ -560,7 +559,7 @@ class SafeMySQL
 		return	"'".mysqli_real_escape_string($this->conn,$value)."'";
 	}
 
-	protected function escapeIdent($value)
+	protected function escapeIdent(null|string $value)
 	{
 		if ($value)
 		{
@@ -570,7 +569,7 @@ class SafeMySQL
 		}
 	}
 
-	protected function createIN($data)
+	protected function createIN(mixed $data)
 	{
 		if (!is_array($data))
 		{
@@ -590,7 +589,7 @@ class SafeMySQL
 		return $query;
 	}
 
-	protected function createSET($data)
+	protected function createSET(mixed $data)
 	{
 		if (!is_array($data))
 		{
@@ -611,7 +610,7 @@ class SafeMySQL
 		return $query;
 	}
 
-	protected function error($err)
+	protected function error(string $err)
 	{
 		$err  = __CLASS__.": ".$err;
 

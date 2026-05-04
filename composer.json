@@ -1,5 +1,5 @@
 {
-    "name": "colshrapnel/safemysql",
+    "name": "wyssenreichenbach/safemysql",
     "description": "A real safe and convenient way to handle MySQL queries.",
     "type": "library",
     "keywords": [
@@ -19,7 +19,7 @@
         "issues": "https://github.com/colshrapnel/safemysql/issues"
     },
     "require": {
-        "php": ">=5.0.0"
+        "php": "^8"
     },
     "autoload": {
         "files": ["safemysql.class.php"]
